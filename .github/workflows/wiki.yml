@@ -1,0 +1,54 @@
+name: Publish wiki
+
+# Mirrors docs/ to the GitHub wiki. docs/ stays the source of truth: edit there,
+# never in the wiki. The wiki must be initialized once by hand (Wiki tab, create
+# the first page), otherwise the wiki repo does not exist yet.
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**", ".github/workflows/wiki.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone wiki
+        run: |
+          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki
+
+      - name: Copy and rewrite docs
+        env:
+          BLOB: https://github.com/${{ github.repository }}/blob/${{ github.event.repository.default_branch }}
+        run: |
+          find wiki -maxdepth 1 -name '*.md' -delete
+          cp docs/*.md wiki/
+          mv wiki/README.md wiki/Home.md
+          # Links out of docs/ become absolute repo URLs, then page links lose .md.
+          sed -i -E \
+            -e "s#\]\(\.\./([^)]+)\)#](${BLOB}/\1)#g" \
+            -e 's#\]\(([A-Za-z0-9_-]+)\.md#](\1#g' \
+            wiki/*.md
+
+      - name: Push
+        working-directory: wiki
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date"
+          else
+            git commit -m "docs: sync from ${{ github.sha }}"
+            git push
+          fi
