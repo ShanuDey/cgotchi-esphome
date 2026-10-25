@@ -530,7 +530,6 @@ number:
     step: 5
     unit_of_measurement: fps
     mode: slider
-    entity_category: config
     optimistic: true
     restore_value: true
     initial_value: 20

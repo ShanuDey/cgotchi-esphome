@@ -71,18 +71,17 @@ void heart(It &it, int cx, int cy, float size, Color c) {
   it.filled_triangle(cx - (int) (size * 0.5f), top + 3, cx + (int) (size * 0.5f), top + 3, cx, cy + (int) (size * 0.48f), c);
 }
 
-// Bent mouth line, 4 px thick. amp > 0 bends the middle down (smile), amp < 0 up (frown).
+// Bent mouth line drawn with a round brush, so it is as thick on a steep bend as on a flat part
+// and ends in round caps. amp > 0 bends the middle down (smile), amp < 0 up (frown).
 template <typename It, typename Color>
 void mouth_line(It &it, int cx, int y, int w, float amp, Color c) {
-  constexpr int kSegments = 16;
-  int px = cx - w / 2, py = y + 0;
-  for (int i = 1; i <= kSegments; i++) {
+  constexpr int kBrush = 4;      // brush radius: the line is 2 * kBrush + 1 px thick
+  constexpr int kSegments = 32;
+  for (int i = 0; i <= kSegments; i++) {
     const float t = i / (float) kSegments;
     const int x = cx - w / 2 + (int) (w * t);
     const int yy = y + (int) (amp * sinf(t * 3.14159265f));
-    for (int k = 0; k < 4; k++) it.line(px, py + k, x, yy + k, c);
-    px = x;
-    py = yy;
+    it.filled_circle(x, yy, kBrush, c);
   }
 }
 

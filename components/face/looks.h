@@ -64,8 +64,10 @@ inline Shape asleep_shape() {
 
 inline Shape happy() {
   Shape s;
-  s.lid_bot = 14;
-  s.mouth_curve = 26;
+  s.eye_h = 46;
+  s.lid_bot = 30;
+  s.mouth_w = 108;
+  s.mouth_curve = 32;
   return s;
 }
 
