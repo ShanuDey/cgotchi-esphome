@@ -18,5 +18,5 @@ the `remote_webview` component, a patched copy of strange-v's RemoteWebViewClien
   **WebView Flip X** switch (off after every reboot) is a debugging aid if only
   this page ever looks mirrored.
 - **Touch:** the touch panel is rotated against the display; the calibration in
-  `cgotchi.yaml` is a first guess from [SKILL.md](../../SKILL.md) section 5. Tune it
+  `cgotchi.yaml` is a first guess from [SKILL.md](../reference/cheeko-gotchi/SKILL.md) section 5. Tune it
   with the VERBOSE touch log if taps land off target.

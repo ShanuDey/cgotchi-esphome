@@ -1,8 +1,8 @@
-# ESPHome config for Cheeko Gotchi
+# ESPHome config for cgotchi
 
-Runs the Cheeko Gotchi board under ESPHome so it shows up in Home Assistant (HA):
+Runs the cgotchi board under ESPHome so it shows up in Home Assistant (HA):
 an animated face, clock, messages, live web pages and a voice assistant on the
-240x296 touch display. This **replaces** the Cheeko app firmware; you can't run both.
+240x296 touch display. This **replaces** the original app firmware; you can't run both.
 
 Device name: `cgotchi`. Config: [cgotchi.yaml](cgotchi.yaml).
 
@@ -17,7 +17,7 @@ You need Home Assistant with the **ESPHome Device Builder** add-on.
 3. Replace the contents with:
    ```yaml
    packages:
-     cgotchi: github://ShanuDey/cheeko-gotchi/esphome/cgotchi.yaml@esphome
+     cgotchi: github://ShanuDey/cgotchi-esphome/cgotchi.yaml@main
    ```
 4. **Install**. The first install is over USB ([docs/flash.md](docs/flash.md)),
    later ones are wireless.
@@ -35,3 +35,11 @@ You need Home Assistant with the **ESPHome Device Builder** add-on.
 Everything else is in [docs/](docs/README.md): voice, display pages, Display
 Frame, WebView, HA entities, validating, flashing, troubleshooting, hardware
 notes and development.
+
+## Reference (optional)
+
+The original SDK repo is a git submodule at
+`reference/cheeko-gotchi`: the hardware bring-up notes (`SKILL.md`: pin map,
+panel and touch calibration, codec gotchas) and the working
+`firmware/hardware_test` that the YAML comments cite. Building and flashing
+don't need it. To fetch it: `git submodule update --init`.

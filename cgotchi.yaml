@@ -6,7 +6,7 @@ substitutions:
 esphome:
   name: cgotchi
   friendly_name: Cheeko
-  # GPIO 2 latches power OFF if driven HIGH (SKILL.md Gotcha 8). Force it LOW
+  # GPIO 2 latches power OFF if driven HIGH (reference/cheeko-gotchi/SKILL.md Gotcha 8). Force it LOW
   # as early as possible so the device never cuts its own power.
   on_boot:
     - priority: 800
@@ -21,7 +21,7 @@ esphome:
 esp32:
   variant: esp32s3
   board: esp32-s3-devkitc-1
-  flash_size: 16MB          # matches firmware/hardware_test
+  flash_size: 16MB          # matches reference/cheeko-gotchi/firmware/hardware_test
   framework:
     type: esp-idf
     # Needed by the remote_webview component (WebSocket client + JPEG tile decoder).
@@ -42,16 +42,16 @@ esp32:
 external_components:
   - source:
       type: git
-      url: https://github.com/ShanuDey/cheeko-gotchi
-      ref: esphome
-      path: esphome/components
+      url: https://github.com/ShanuDey/cgotchi-esphome
+      ref: main
+      path: components
     components: [remote_webview, face]
 
 # Face engine (components/face/): expressions, animation, drawing and the color presets
 # (cgotchi::face::FACE_PRESETS) used by the display and light lambdas.
 face:
 
-# Octal PSRAM is mandatory on this board (SKILL.md Gotcha 1).
+# Octal PSRAM is mandatory on this board (reference/cheeko-gotchi/SKILL.md Gotcha 1).
 psram:
   mode: octal
   speed: 80MHz
@@ -94,7 +94,7 @@ wifi:
   password: !secret wifi_password
   # If Wi-Fi fails, the device makes its own hotspot so you can still reach it.
   ap:
-    ssid: "Cheeko Gotchi Fallback"
+    ssid: "Cgotchi Fallback"
     password: !secret ap_password
 
 captive_portal:
@@ -109,7 +109,7 @@ i2c:
 
 # CST810 touch. ESPHome's cst816 driver rejects its chip ID, so skip the probe; the register
 # layout (touch count at 0x02, X at 0x03/04, Y at 0x05/06) matches. Raw axes are swapped vs the
-# display (SKILL.md section 5: raw Y -> screen X, raw X -> screen Y inverted). The calibration is
+# display (reference/cheeko-gotchi/SKILL.md section 5: raw Y -> screen X, raw X -> screen Y inverted). The calibration is
 # a first guess from that section's measurements; tune it with the touch log (VERBOSE) if taps
 # on the WebView page land off target.
 touchscreen:
@@ -137,7 +137,7 @@ touchscreen:
 
 # ---------------------------------------------------------------- display
 # 240x296 ST7789-class panel, no MISO. MADCTL 0x40 = mirror X, RGB order,
-# no inversion (SKILL.md section 4). Portrait only; landscape needs offsets.
+# no inversion (reference/cheeko-gotchi/SKILL.md section 4). Portrait only; landscape needs offsets.
 spi:
   clk_pin: 9
   mosi_pin: 10
@@ -168,7 +168,7 @@ display:
     invert_colors: false
     transform:                 # all three keys are required once transform is used
       swap_xy: false
-      mirror_x: true           # MADCTL 0x40 (SKILL.md section 4); false shows every page flipped left to right
+      mirror_x: true           # MADCTL 0x40 (reference/cheeko-gotchi/SKILL.md section 4); false shows every page flipped left to right
       mirror_y: false
     update_interval: never     # redraws come from entity changes, the minute tick and the face animation interval
     auto_clear_enabled: false  # the lambda fills the screen itself; the WebView page must not be cleared
@@ -416,7 +416,7 @@ script:
             - component.update: frame_img
 
 # ---------------------------------------------------------------- webview
-# An HA dashboard rendered by the Remote WebView server (esphome/remote-webview/) and streamed
+# An HA dashboard rendered by the Remote WebView server (remote-webview/) and streamed
 # as JPEG tiles. Taps go to the page. Starts paused: the lambda above turns it on while the
 # WebView page shows. Long press Volume Down to change page.
 remote_webview:
@@ -590,7 +590,7 @@ text:
 
 # ------------------------------------------------------------------ audio
 # One I2S bus shared by playback (ES8311) and capture (ES7210).
-# The ES8311 cannot record; all capture goes through the ES7210 (SKILL.md).
+# The ES8311 cannot record; all capture goes through the ES7210 (reference/cheeko-gotchi/SKILL.md).
 i2s_audio:
   - id: i2s_bus
     i2s_lrclk_pin: 16
@@ -861,7 +861,7 @@ binary_sensor:
               id: page_sel
               cycle: true
 
-# No middle-button sensor: it feeds the power circuit and never reaches GPIO 3 on this unit (hardware_test's PWR indicator stays dark too).
+# No middle-button sensor: it feeds the power circuit and never reaches GPIO 3 on this unit (the PWR indicator in reference/cheeko-gotchi hardware_test stays dark too).
 
 globals:
   - id: was_speaking

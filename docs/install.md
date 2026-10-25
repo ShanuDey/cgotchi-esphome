@@ -15,7 +15,7 @@ Nothing to download or copy. The config and its two custom components
 3. Replace its contents with just this:
    ```yaml
    packages:
-     cgotchi: github://ShanuDey/cheeko-gotchi/esphome/cgotchi.yaml@esphome
+     cgotchi: github://ShanuDey/cgotchi-esphome/cgotchi.yaml@main
    ```
    The device is named `cgotchi`; to use another name, add
    `esphome: {name: mydevice}` above `packages:`.
@@ -58,7 +58,7 @@ containers: see [remote-webview/](../remote-webview/) and
 
 `uv sync` (esphome is a dev dependency, pinned in `uv.lock`), then
 `cp secrets.example.yaml secrets.yaml` (git-ignored, never commit it) and fill in
-the same secrets as above. Run `uv run esphome ...` from the `esphome/` folder in
+the same secrets as above. Run `uv run esphome ...` from the repo root in
 **PowerShell**, not Git Bash (ESP-IDF fails there with `MSys/Mingw is not
 supported`).
 

@@ -1,7 +1,7 @@
 # Display frame service
 
 Renders one web page in headless Chromium (Playwright) and serves it as a
-240x296 JPEG at `/frame.jpg` for the Cheeko Gotchi **Display Frame** page. It lives apart
+240x296 JPEG at `/frame.jpg` for the cgotchi **Display Frame** page. It lives apart
 from `../wyoming-voice` so each stack updates on its own.
 
 - Presets are the `pages/*.html` files in the image. `/presets` lists their

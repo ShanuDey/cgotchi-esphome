@@ -1,7 +1,7 @@
 # Flash
 
 First flash is over USB. Local: `uv run esphome run cgotchi.yaml --device COMx`
-(find the port with `../../tools/cheeko ports`). Or download the factory image
+(list serial ports with `uv run esphome run cgotchi.yaml`, which prompts for one). Or download the factory image
 from the dashboard and flash it with https://web.esphome.io in Chrome/Edge.
 After flashing, unplug and replug USB; the board stays in download mode.
 

@@ -8,9 +8,9 @@
 external_components:
   - source:
       type: git
-      url: https://github.com/ShanuDey/cheeko-gotchi
-      ref: esphome
-      path: esphome/components
+      url: https://github.com/ShanuDey/cgotchi-esphome
+      ref: main
+      path: components
     components: [remote_webview, face]
 ```
 
@@ -22,7 +22,7 @@ external_components:
 This is what lets the config work standalone in the HA builder with no local
 files. The catch: edits to `components/` have no effect on a build until you push
 them. To iterate on a component locally, run ESPHome through `dev.py` (from
-`esphome/`) instead of `uv run esphome`:
+the repo root) instead of `uv run esphome`:
 
 ```bash
 uv run dev.py compile

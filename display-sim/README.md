@@ -35,7 +35,7 @@ not touched. The window appears through WSLg, which ships with Windows 11.
 From the repo root in PowerShell (or any shell on Linux or macOS):
 
 ```powershell
-uv run --group sim esphome/display-sim/control.py
+uv run --group sim display-sim/control.py
 ```
 
 This starts the simulator in WSL, opens the control page at <http://localhost:8081>, and
@@ -61,10 +61,10 @@ state or speaking.
 ## Run the simulator alone
 
 ```powershell
-wsl -d Ubuntu -- bash <localrepo_path>/esphome/display-sim/run.sh
+wsl -d Ubuntu -- bash <localrepo_path>/display-sim/run.sh
 ```
 
-or from an Ubuntu shell, `./esphome/display-sim/run.sh`. Arguments: `config` (validate only),
+or from an Ubuntu shell, `./display-sim/run.sh`. Arguments: `config` (validate only),
 `compile`, or `run` (the default: build and open the window).
 
 ## Settings file

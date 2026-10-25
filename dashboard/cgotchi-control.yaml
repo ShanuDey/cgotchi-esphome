@@ -19,7 +19,7 @@ views:
         type: vertical-stack
         cards:
           - type: custom:mushroom-title-card
-            title: Cheeko Gotchi
+            title: Cgotchi
             subtitle: Display, voice and audio
             card_mod:
               style: ".title,.subtitle{text-align:center;}"

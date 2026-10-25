@@ -14,5 +14,5 @@ cd "$(dirname "$0")"
 [ -f settings.txt ] || cp settings.example.txt settings.txt
 export DISPLAY_SIM_SETTINGS="$PWD/settings.txt"
 
-uv sync --project ../..
-exec uv run --project ../.. esphome "${1:-run}" display-sim.yaml
+uv sync --project ..
+exec uv run --project .. esphome "${1:-run}" display-sim.yaml

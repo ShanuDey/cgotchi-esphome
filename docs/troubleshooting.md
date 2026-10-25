@@ -22,7 +22,7 @@
   display-entity change, once a minute, and while audio plays, so check the
   backlight switch and the log.
 - **Colours swapped or picture offset:** `color_order`, `invert_colors`, or
-  `offset_width`/`offset_height` under `dimensions`. [SKILL.md](../../SKILL.md) has
+  `offset_width`/`offset_height` under `dimensions`. [SKILL.md](../reference/cheeko-gotchi/SKILL.md) has
   the panel's known quirks (GRAM wider than the visible area, edge colour corruption).
 - **Face does not show while the assistant talks:** voice replies play as
   announcements, so the media player state is `ANNOUNCING`, not `PLAYING`. The
@@ -40,7 +40,7 @@
 - **`sound_level` rejects `update_interval`/`dbfs`:** it needs `passive:` and an
   `rms:` or `peak:` sensor.
 - **Speaker clicks but is silent:** the amp works but the codec isn't producing
-  sound; compare against the reference init in [SKILL.md](../../SKILL.md) section 6.
+  sound; compare against the reference init in [SKILL.md](../reference/cheeko-gotchi/SKILL.md) section 6.
 
 ## Buttons
 

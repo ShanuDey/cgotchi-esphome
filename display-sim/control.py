@@ -1,6 +1,6 @@
 """Control page for the display simulator.
 
-    uv run --group sim esphome/display-sim/control.py
+    uv run --group sim display-sim/control.py
 
 Starts the simulator (in WSL on Windows) and a page at http://localhost:8081 where you change the
 expression, voice state, color and frame rate while it runs, like Home Assistant does on the

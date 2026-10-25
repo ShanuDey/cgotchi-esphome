@@ -4,3 +4,6 @@
 /.esphome/
 /secrets.yaml
 /cgotchi-dev.yaml
+/.venv/
+__pycache__/
+*.pyc

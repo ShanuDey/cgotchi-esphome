@@ -3,7 +3,7 @@
 ## Validate before installing
 
 Catches YAML errors in one pass instead of one at a time in the editor. Run
-from **PowerShell** in `esphome/`. Don't use Git Bash: ESP-IDF fails there with
+from **PowerShell** in the repo root. Don't use Git Bash: ESP-IDF fails there with
 `MSys/Mingw is not supported`.
 ```powershell
 uv run esphome config cgotchi.yaml

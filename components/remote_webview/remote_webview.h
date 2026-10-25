@@ -53,7 +53,7 @@ class RemoteWebView : public Component {
   void set_rotation(int v) { rotation_ = v; }
   void set_scale(float v) { scale_ = v; }
   void disable_touch(bool disable);
-  // Local patch (Cheeko Gotchi): stop drawing tiles and sending touch while another page owns
+  // Local patch (cgotchi): stop drawing tiles and sending touch while another page owns
   // the display. set_active() waits for a tile draw already in flight, so the caller may draw
   // to the display right after set_active(false) returns. Re-activating requests a full frame.
   void set_initial_active(bool active) { active_.store(active); }

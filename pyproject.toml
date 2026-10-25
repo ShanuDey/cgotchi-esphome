@@ -1,0 +1,20 @@
+[project]
+name = "cgotchi-esphome"
+version = "0.1.0"
+description = "ESPHome firmware for the cgotchi board"
+readme = "README.md"
+authors = [
+    { name = "Shanu Dey", email = "sd4shanudey@gmail.com" },
+]
+requires-python = ">=3.12,<3.15"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "esphome==2026.10.0",
+    "esptool>=5.4.0",
+]
+sim = [
+    "fastapi>=0.162.0",
+    "uvicorn>=0.54.0",
+]

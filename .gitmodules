@@ -1,0 +1,5 @@
+[submodule "reference/cheeko-gotchi"]
+	path = reference/cheeko-gotchi
+	url = https://github.com/ShanuDey/cheeko-gotchi
+	branch = main
+	shallow = true

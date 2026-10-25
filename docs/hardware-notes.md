@@ -1,6 +1,6 @@
 # Hardware notes and status
 
-Pins and quirks come from [SKILL.md](../../SKILL.md).
+Pins and quirks come from [SKILL.md](../reference/cheeko-gotchi/SKILL.md).
 
 ## Status
 
@@ -30,4 +30,4 @@ Pins and quirks come from [SKILL.md](../../SKILL.md).
   (`OTA rollback detected`). Don't add one. There is no battery level sensor:
   the board has no fuel gauge on I2C and no known battery-voltage ADC pin.
 - Octal PSRAM is mandatory on this board.
-- This config **replaces** the Cheeko app firmware; you can't run both.
+- This config **replaces** the original app firmware; you can't run both.
