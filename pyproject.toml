@@ -18,3 +18,8 @@ sim = [
     "fastapi>=0.162.0",
     "uvicorn>=0.54.0",
 ]
+
+# display-frame is a workspace member so the editor and `uv sync --all-packages`
+# see its dependencies; they are declared only in display-frame/pyproject.toml.
+[tool.uv.workspace]
+members = ["display-frame"]

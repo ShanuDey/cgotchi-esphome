@@ -1,0 +1,11 @@
+[project]
+name = "display-frame"
+version = "0.1.0"
+description = "Serves a web page snapshot as a 240x296 JPEG for the cgotchi display"
+requires-python = ">=3.10"
+# The one place these are declared: the Dockerfile installs from here too. The playwright
+# version must match the base image tag in the Dockerfile (it ships that version's Chromium).
+dependencies = [
+    "playwright==1.49.0",
+    "pillow>=11",
+]

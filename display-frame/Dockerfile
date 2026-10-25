@@ -1,9 +1,9 @@
 # The base image ships Chromium for this Playwright version but not the Python package.
 FROM mcr.microsoft.com/playwright/python:v1.49.0-jammy
 
-RUN pip install --no-cache-dir playwright==1.49.0 pillow==11.0.0
-
 WORKDIR /app
+COPY pyproject.toml .
+RUN pip install --no-cache-dir uv && uv pip install --system --no-cache -r pyproject.toml
 COPY server.py .
 COPY pages pages
 
