@@ -2,6 +2,7 @@
 # (secrets.yaml). The page it renders is the "Display Frame URL" entity, editable from HA.
 substitutions:
   display_frame_server: !secret display_frame_server
+  components_ref: main   # branch or tag the components come from
 
 esphome:
   name: cgotchi
@@ -43,7 +44,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/ShanuDey/cgotchi-esphome
-      ref: main
+      ref: ${components_ref}
       path: components
     components: [remote_webview, display_ui, face]
 

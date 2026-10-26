@@ -24,9 +24,9 @@ in its `components:` list.
 4. **Install**. The first install is over USB, later ones are wireless (see
    [flash.md](flash.md)).
 
-`@esphome` is the branch. For a stable setup pin a release tag instead (for
-example `@v0.1.0`) so later changes to this repo don't alter your build. The first
-build downloads the repo and the toolchain, so it is slow.
+`@main` is the branch. To pin a release tag or try another branch, see
+[development.md](development.md#pin-a-tag-or-test-a-branch). The first build downloads the repo
+and the toolchain, so it is slow.
 
 ## Secrets
 

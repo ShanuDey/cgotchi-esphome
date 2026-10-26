@@ -9,7 +9,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/ShanuDey/cgotchi-esphome
-      ref: main
+      ref: ${components_ref}
       path: components
     components: [remote_webview, display_ui, face]
 ```
@@ -47,10 +47,29 @@ clone under `.esphome/`) after pushing a change.
 `components/display_ui/` (`ui.h` draws the pages), not in the YAML, so lambdas stay short and the
 display simulator draws the same thing. `esphome config cgotchi.yaml` prints the merged result.
 
+## Pin a tag or test a branch
+
+In the HA builder the config and the components are fetched separately, so name the tag or
+branch twice. Push it first: the builder reads GitHub, not your PC.
+
+```yaml
+substitutions:
+  components_ref: my-branch   # or a tag such as v0.1.0
+
+packages:
+  cgotchi:
+    url: https://github.com/ShanuDey/cgotchi-esphome
+    ref: my-branch
+    files: [cgotchi.yaml]
+    refresh: 1min
+```
+
+`refresh` stops ESPHome reusing a cached clone for a day.
+
 ## Releasing
 
 1. Merge to `main` and tag a release (for example `v0.1.0`).
-2. Point `ref:` in `cgotchi.yaml` and the `packages:` line in
+2. Point `components_ref` in `cgotchi.yaml` and the `packages:` line in
    [install.md](install.md) at the tag, so users don't break when the branch moves.
 
 ## Other folders
