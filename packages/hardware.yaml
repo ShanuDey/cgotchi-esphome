@@ -1,0 +1,117 @@
+# Board hardware: I2C and touch, audio chips, speaker, mic, backlight, power latch, amp. Uses nothing else.
+
+# One I2C bus shared by touch, both audio codecs and the accelerometer.
+i2c:
+  id: bus_a
+  sda: 12
+  scl: 11
+  frequency: 400kHz
+  scan: true     # prints every chip it finds in the log; expect 0x15 0x18 0x19 0x40
+
+# CST810 touch. ESPHome's cst816 driver rejects its chip ID, so skip the probe; the register
+# layout (touch count at 0x02, X at 0x03/04, Y at 0x05/06) matches. Raw axes are swapped vs the
+# display (reference/cheeko-gotchi/SKILL.md section 5: raw Y -> screen X, raw X -> screen Y inverted). The calibration is
+# a first guess from that section's measurements; tune it with the touch log (VERBOSE) if taps
+# on the WebView page land off target.
+touchscreen:
+  - platform: cst816
+    id: touch
+    i2c_id: bus_a
+    skip_probe: true
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: 300
+      y_min: 0
+      y_max: 260
+    transform:
+      swap_xy: false
+      mirror_x: false
+      mirror_y: false
+    on_touch:
+      - logger.log:
+          level: VERBOSE
+          format: "touch x=%d y=%d raw x=%d y=%d"
+          args: ["touch.x", "touch.y", "touch.x_raw", "touch.y_raw"]
+    # Taps belong to the WebView page (forwarded by remote_webview). Pages change with a long
+    # press of Volume Down or the Display Page select in HA.
+
+# One I2S bus shared by playback (ES8311) and capture (ES7210).
+# The ES8311 cannot record; all capture goes through the ES7210 (reference/cheeko-gotchi/SKILL.md).
+i2s_audio:
+  - id: i2s_bus
+    i2s_lrclk_pin: 16
+    i2s_bclk_pin: 15
+    i2s_mclk_pin: 5
+
+audio_dac:
+  - platform: es8311
+    id: es8311_dac
+    address: 0x18
+    bits_per_sample: 16bit
+    sample_rate: 16000
+
+audio_adc:
+  - platform: es7210
+    id: es7210_adc
+    address: 0x40
+    bits_per_sample: 16bit
+    sample_rate: 16000
+    mic_gain: 24dB
+
+speaker:
+  - platform: i2s_audio
+    id: spk
+    i2s_audio_id: i2s_bus
+    i2s_dout_pin: 6
+    dac_type: external
+    audio_dac: es8311_dac
+    channel: left
+    sample_rate: 16000
+    bits_per_sample: 16bit
+
+microphone:
+  - platform: i2s_audio
+    id: mic
+    i2s_audio_id: i2s_bus
+    i2s_din_pin: 7
+    adc_type: external
+    sample_rate: 16000
+    bits_per_sample: 16bit
+
+sensor:
+  # Loudness in dB so you can watch the mic react in HA.
+  # Passive: only measures while something else (e.g. the voice assistant) is
+  # capturing. A non-passive meter holds the I2S bus open and blocks the speaker.
+  - platform: sound_level
+    id: noise_meter
+    microphone: mic
+    passive: true
+    rms:
+      name: "Mic Level"
+
+output:
+  - platform: ledc
+    id: backlight_pwm
+    pin: 13                    # LCD backlight enable, HIGH = on
+    frequency: 1000Hz
+
+light:
+  - platform: monochromatic
+    name: "Backlight"
+    id: backlight
+    output: backlight_pwm
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0s   # no fade, snappy dimming
+
+switch:
+  - platform: gpio
+    id: power_off_latch
+    pin: 2
+    restore_mode: ALWAYS_OFF
+    internal: true             # hidden from HA on purpose: turning it on kills power
+  - platform: gpio
+    id: speaker_amp
+    pin: 4                     # NS4150B amp enable, HIGH = on
+    restore_mode: ALWAYS_ON
+    internal: true

@@ -12,9 +12,9 @@ let state;
 let saveTimer = null;
 let lastTouch = 0;
 
+const pageButtons = new Map();
 const expressionButtons = new Map();
 const voiceButtons = new Map();
-const colorButtons = new Map();
 const themeButtons = new Map();
 
 // ---- talking to the server ------------------------------------------------------------------
@@ -99,11 +99,12 @@ function buildChips(container, names, buttons, onPick) {
 
 const toHex = (rgb) => `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 
-// A theme sets the accent and background (the simulator has no secondary color).
+// A theme sets the accent, secondary and background lights together, like the device's Theme select.
 function buildThemes() {
   for (const theme of meta.themes) {
     const button = chip(theme.name, () => {
       state.accent = toHex(theme.accent);
+      state.secondary = toHex(theme.secondary);
       state.background = toHex(theme.bg);
       scheduleSave();
       sync();
@@ -113,22 +114,41 @@ function buildThemes() {
   }
 }
 
-function buildColors() {
-  for (const { name, rgb } of meta.colors) {
-    const button = chip("", () => {
-      state.accent = toHex(rgb);
-      scheduleSave();
-      sync();
-    });
-    button.style.background = `rgb(${rgb.join(",")})`;
-    button.title = name;
-    button.setAttribute("aria-label", name);
-    colorButtons.set(toHex(rgb), button);
-    $("#colors").append(button);
-  }
+function bindText(selector, key, counter, max) {
+  const input = $(selector);
+  input.maxLength = max;
+  input.addEventListener("input", () => {
+    state[key] = input.value.split(/\s+/).join(" ");
+    scheduleSave();
+    sync();
+  });
+  return { input, key, counter, max };
 }
 
+const texts = [];
+
 function bindControls() {
+  buildChips($("#pages"), meta.pages, pageButtons, (name) => {
+    state.page = name;
+    scheduleSave();
+    sync();
+  });
+  texts.push(bindText("#message-title", "message_title", "#title-count", meta.title_max));
+  texts.push(bindText("#message-body", "message_body", "#body-count", meta.body_max));
+  $("#clock-24h").addEventListener("change", (event) => {
+    state.clock_24h = event.target.checked;
+    scheduleSave();
+  });
+  $("#clock-time").addEventListener("input", (event) => {
+    state.clock_time = event.target.value;
+    scheduleSave();
+    sync();
+  });
+  $("#clock-live").addEventListener("click", () => {
+    state.clock_time = "";
+    scheduleSave();
+    sync();
+  });
   buildChips($("#expressions"), meta.expressions, expressionButtons, (name) => {
     state.expression = name;
     scheduleSave();
@@ -140,8 +160,7 @@ function bindControls() {
     sync();
   });
   buildThemes();
-  buildColors();
-  for (const key of ["accent", "background"]) {
+  for (const key of ["accent", "secondary", "background"]) {
     $(`#${key}`).addEventListener("input", (event) => {
       state[key] = event.target.value;
       scheduleSave();
@@ -166,18 +185,31 @@ function bindControls() {
 // ---- showing the state ----------------------------------------------------------------------
 
 function sync() {
+  for (const [name, button] of pageButtons) button.setAttribute("aria-pressed", name === state.page);
+  $("#card-face").hidden = state.page !== "Face";
+  $("#card-clock").hidden = state.page !== "Clock";
+  $("#card-message").hidden = state.page !== "Message";
   for (const [name, button] of expressionButtons) button.setAttribute("aria-pressed", name === state.expression);
   for (const [name, button] of voiceButtons) button.setAttribute("aria-pressed", name === state.voice);
-  for (const [hex, button] of colorButtons) button.setAttribute("aria-pressed", hex === state.accent);
   for (const theme of meta.themes) {
-    const on = toHex(theme.accent) === state.accent && toHex(theme.bg) === state.background;
+    const on = toHex(theme.accent) === state.accent && toHex(theme.secondary) === state.secondary &&
+      toHex(theme.bg) === state.background;
     themeButtons.get(theme.name).setAttribute("aria-pressed", on);
   }
   $("#accent").value = state.accent;
+  $("#secondary").value = state.secondary;
   $("#background").value = state.background;
   $("#speaking").checked = state.speaking;
   $("#fps").value = state.fps;
   $("#fps-value").textContent = `${state.fps} fps`;
+  $("#clock-24h").checked = state.clock_24h;
+  $("#clock-time").value = state.clock_time;
+  $("#clock-hint").textContent = state.clock_time ? "The clock page is frozen at this time." : "Showing this computer's time.";
+  for (const { input, key, counter, max } of texts) {
+    // Rewrite only when different, so the caret stays put while typing.
+    if (input.value !== state[key]) input.value = state[key];
+    $(counter).textContent = `${state[key].length}/${max}`;
+  }
 }
 
 async function init() {

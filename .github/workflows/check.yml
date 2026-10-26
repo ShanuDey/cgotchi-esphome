@@ -1,0 +1,70 @@
+name: check
+
+# Tests, builds the simulator (compiling the shared C++ headers) and validates the device config.
+# The device itself is not compiled: slow, and the simulator compiles the same headers.
+
+on:
+  pull_request:
+    paths:
+      - cgotchi.yaml
+      - packages/**
+      - dev.py
+      - display-sim/**
+      - components/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/check.yml
+  push:
+    branches: [main]
+    paths:
+      - cgotchi.yaml
+      - packages/**
+      - dev.py
+      - display-sim/**
+      - components/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The simulator's sdl display needs SDL2.
+      - name: Install SDL2
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync
+
+      - name: Control server tests
+        run: uv run pytest display-sim/tests -q
+
+      - name: Text helper tests
+        working-directory: components/display_ui/tests
+        run: g++ -std=c++17 -Wall -Wextra -o test_text test_text.cpp && ./test_text
+
+      # A C++ error in a shared header fails here.
+      - name: Build the simulator
+        run: uv run esphome compile display-sim/display-sim.yaml
+
+      # dev.py uses this checkout's components, not main's. Placeholder secrets, validation only;
+      # api_key must be valid base64, so a throwaway one is generated.
+      - name: Validate the device config
+        run: |
+          grep -v '^api_key' secrets.example.yaml > secrets.yaml
+          python3 -c "import base64,os;print('api_key: ' + base64.b64encode(os.urandom(32)).decode())" >> secrets.yaml
+          uv run dev.py config > config.txt || { tail -n 40 config.txt; exit 1; }

@@ -6,8 +6,9 @@ so the same C++ that runs on the board draws what you see. Use it to tune faces 
 animation before flashing.
 
 It stands in for Home Assistant: the control page sets the same entities HA sets on the
-device (expression, voice state, speaking, accent and background color, frame rate). Only the face is simulated: not
-the other pages, audio, touch, Wi-Fi or the real HA connection.
+device (page, expression, voice state, speaking, theme colors, clock and message text, frame rate). The Face, Clock and
+Message pages are simulated; Display Frame and WebView (they need the network), audio, touch, Wi-Fi and the real HA
+connection are not.
 
 ## One-time setup (Windows 11)
 
@@ -84,7 +85,7 @@ Click the window first so it has focus.
 | Left / Right | previous / next expression |
 | V | next voice state (Idle, Listening, Thinking, Replying, Error) |
 | S | toggle speaking |
-| C | next accent color preset |
+| P | next page (Face, Clock, Message) |
 | Up / Down | frame rate +5 / -5 fps |
 
 Keys change the running simulator only, not `settings.txt`, so the next edit of the file or
@@ -93,7 +94,7 @@ the page puts everything back to what it says.
 ## What the page expects from the face headers
 
 `simctl/face_headers.py` reads the expression and voice names from the enums in
-`components/face/looks.h`, and the accent swatches from `colors.h`, with simple patterns. Keep
+`components/face/looks.h`, and the themes from `components/display_ui/themes.h`, with simple patterns. Keep
 their existing style. If it drifts, the page stops at startup with a message saying what it
 could not find. A new expression or color shows up on the page after a restart.
 
@@ -114,13 +115,15 @@ could not find. A new expression or color shows up on the page after a restart.
 uv run pytest display-sim/tests
 ```
 
-CI ([display-sim.yml](../.github/workflows/display-sim.yml)) runs these and validates the simulator's
-config. To validate the config yourself, run `./run.sh config` in WSL: ESPHome's SDL display needs
+CI ([check.yml](../.github/workflows/check.yml)) runs these, builds the simulator (which compiles the
+shared C++ headers) and validates the device config. To validate the simulator config yourself, run
+`./run.sh config` in WSL: ESPHome's SDL display needs
 `sdl2-config`, so `esphome config` does not work on Windows.
 
 ## Keeping it in step with the device
 
-`display-sim.yaml` holds a small copy of the face part of the display lambda in
-`cgotchi.yaml`, and the same option lists. If you change the face page in
-`cgotchi.yaml`, mirror it here. The engine itself (`components/face/`) is shared, so
-edits to expressions and drawing show up in both with no copying.
+The device and the simulator draw with the same code: `cgotchi::ui::render()` in
+[components/display_ui/ui.h](../components/display_ui/ui.h). Edits to a page, an expression or the colors
+show up in both with no copying. Only the entities are mirrored by hand: the option lists in
+`display-sim.yaml` (pages, expressions, voices, clock format) must match the device's, and so
+must the message text limits (`MESSAGE_TITLE_MAX` and `MESSAGE_BODY_MAX` in `simctl/meta.py`).

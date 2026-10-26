@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api")
 
 @router.get("/meta")
 def read_meta(meta: MetaDep) -> MetaOut:
-    """What can be set: expressions, voice states, colors, themes and the frame rate range."""
+    """What can be set: pages, expressions, voices, themes and the frame rate range."""
     return MetaOut.from_meta(meta)
 
 

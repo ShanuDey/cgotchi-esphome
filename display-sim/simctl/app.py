@@ -6,12 +6,22 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 
 from .config import WEB_DIR
 from .launcher import Simulator
 from .meta import Meta
 from .routes import router
 from .settings_file import SettingsFile
+
+
+class PageFiles(StaticFiles):
+    """Page files, always revalidated: a stale script or style sheet shows a half-updated page."""
+
+    async def get_response(self, path: str, scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def _readable(error: dict) -> str:
@@ -49,5 +59,5 @@ def create_app(meta: Meta, settings_file: SettingsFile, simulator: Simulator) ->
         return JSONResponse(status_code=422, content={"detail": [_readable(e) for e in exc.errors()]})
 
     app.include_router(router)
-    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+    app.mount("/", PageFiles(directory=WEB_DIR, html=True), name="web")
     return app

@@ -1,0 +1,483 @@
+# The display and what it shows: panel, fonts, the display lambda (display_ui), pages, theme lights.
+# Uses: gotchi_player, mww, va_state (voice.yaml), rwv (webview.yaml), ota_state and ota_pct (ota: in cgotchi.yaml).
+
+# 240x296 ST7789-class panel, no MISO. MADCTL 0x40 = mirror X, RGB order,
+# no inversion (reference/cheeko-gotchi/SKILL.md section 4). Portrait only; landscape needs offsets.
+spi:
+  clk_pin: 9
+  mosi_pin: 10
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_clock
+    size: 72
+  - file: "gfonts://Roboto"
+    id: font_med
+    size: 28
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 20
+
+display:
+  - platform: mipi_spi
+    id: lcd
+    model: ST7789V
+    dimensions:
+      width: 240
+      height: 296
+    cs_pin: 14
+    dc_pin: 8
+    reset_pin: 17
+    data_rate: 40MHz
+    color_order: bgr           # rgb shows red and blue swapped on this unit (blue preset came out yellow)
+    invert_colors: false
+    transform:                 # all three keys are required once transform is used
+      swap_xy: false
+      mirror_x: true           # MADCTL 0x40 (reference/cheeko-gotchi/SKILL.md section 4); false shows every page flipped left to right
+      mirror_y: false
+    update_interval: never     # redraws come from entity changes, the minute tick and the face animation interval
+    auto_clear_enabled: false  # the lambda fills the screen itself; the WebView page must not be cleared
+    lambda: |-
+      // Fill a State; cgotchi::ui::render() (display_ui/ui.h)
+      // draws it. The WebView page is drawn by the remote_webview component straight to the panel,
+      // so the panel is handed over to it only while shows_webview() is true.
+      cgotchi::ui::State st;
+      st.now_ms = millis();
+      st.page = id(page_sel).active_index().value_or(0);
+      st.expression = id(face_sel).active_index().value_or(0);
+      st.voice = id(va_state);
+      // Voice replies play as announcements (ANNOUNCING), media from HA as PLAYING.
+      const auto mp = id(gotchi_player).state;
+      st.playing = mp == media_player::MEDIA_PLAYER_STATE_PLAYING || mp == media_player::MEDIA_PLAYER_STATE_ANNOUNCING;
+      st.mic_on = id(mww).is_running() || st.voice == 1;
+      st.volume_visible = (int32_t) (id(vol_until) - st.now_ms) > 0;
+      st.volume_pct = (int) roundf(id(gotchi_player).volume * 100.0f);
+      st.ota_state = id(ota_state);
+      st.ota_pct = id(ota_pct);
+      st.frame_state = id(frame_state);
+      st.frame_image = id(frame_img);
+      st.hour24 = id(clock_fmt_sel).active_index().value_or(0) == 1;
+      st.time = id(ha_time).now();
+      if (st.page == cgotchi::ui::MESSAGE) {   // the strings are copies: only when shown
+        st.message_title = id(msg_title).state;
+        st.message_body = id(msg_body).state;
+      }
+
+      // The updating, voice assistant and audio states take the screen back from the WebView page;
+      // set_active(false) waits for a tile already being drawn.
+      id(rwv).set_active(cgotchi::ui::shows_webview(st) && !st.volume_visible);
+      cgotchi::ui::render(it, cgotchi::ui::make_palette(id(bg_color), id(accent_color), id(secondary_color)),
+                          {id(font_clock), id(font_med), id(font_small)}, st);
+
+# Display Frame page: JPEG snapshots fetched from the display-frame service (see display-frame/).
+# JPEG snapshots fetched one after another and drawn full screen (a few fps, no
+# audio). Frames must already be 240x296; see display-frame/.
+http_request:
+  timeout: 5s
+  buffer_size_rx: 4096
+
+image:
+  - platform: online_image
+    id: frame_img
+    url: "http://homeassistant.local:8123/lovelace/default_view"
+    format: JPEG
+    type: RGB565
+    resize: 240x296
+    update_interval: never
+    on_download_finished:
+      - lambda: |-
+          id(frame_state) = 1;
+          id(frame_errors) = 0;
+      - component.update: lcd
+      - script.execute:
+          id: fetch_next
+          wait_ms: !lambda 'return cached ? 250 : 50;'   # cached: server answered 304
+    on_error:
+      - lambda: |-
+          // Three failures in a row, so one dropped frame does not flash "No frame".
+          if (++id(frame_errors) >= 3) id(frame_state) = 2;
+      - component.update: lcd
+      - script.execute:
+          id: fetch_next
+          wait_ms: 1000
+
+script:
+  # Shows which theme the three color lights match (Custom when none), after any of them changes.
+  - id: sync_theme
+    mode: restart
+    then:
+      - lambda: |-
+          const char *match = cgotchi::ui::theme_name_for(id(bg_color), id(accent_color), id(secondary_color));
+          if (id(theme_sel).current_option() != match) id(theme_sel).make_call().set_option(match).perform();
+  # Resume on-device wake word listening after the reply has played, but only in Wake Word Mode.
+  - id: start_wake_word
+    mode: restart
+    then:
+      # Mic and speaker share one I2S bus. on_end fires before the reply finishes playing, so
+      # wait for playback to start and end before the wake word takes the mic back.
+      - wait_until:
+          condition:
+            not:
+              media_player.is_idle: gotchi_player
+          timeout: 5s            # no reply (error, cancelled): carry on
+      - wait_until:
+          condition:
+            media_player.is_idle: gotchi_player
+          timeout: 60s
+      - delay: 300ms
+      - if:
+          condition:
+            switch.is_on: wake_word_mode
+          then:
+            - micro_wake_word.start:
+  # Volume popup: the display lambda draws the bar while vol_until is in the future, then this
+  # redraws once more so the popup disappears.
+  - id: show_volume
+    mode: restart
+    then:
+      - delay: 60ms              # let the media player apply the new volume first
+      - lambda: |-
+          id(vol_until) = millis() + 1500;
+      - component.update: lcd
+      - delay: 1560ms
+      - component.update: lcd
+  # The next download must not start inside the callbacks above: the component tears
+  # down its connection right after they return, which aborts the new download and
+  # releases the image (black screen). Running from a script defers it.
+  # Frame address = display-frame service (display_frame_server secret) + the page to render, which is the
+  # "Display Frame URL" entity so it can be changed from HA. The page is percent-encoded into ?url=.
+  - id: apply_frame_url
+    then:
+      - online_image.set_url:
+          id: frame_img
+          url: !lambda |-
+            // A bundled page (preset names are [a-z0-9_-]) or, for Custom, the Display Frame URL.
+            return cgotchi::ui::frame_request_url("${display_frame_server}", id(frame_src).current_option().str(),
+                                                    id(frame_url).state);
+  - id: fetch_next
+    mode: restart
+    parameters:
+      wait_ms: int
+    then:
+      - delay: !lambda 'return wait_ms;'
+      - if:
+          condition:
+            lambda: 'return id(page_sel).active_index().value_or(0) == 3;'
+          then:
+            - component.update: frame_img
+
+# ---------------------------------------------- display controls (from HA)
+time:
+  - platform: homeassistant
+    id: ha_time
+    on_time_sync:
+      - component.update: lcd
+    on_time:
+      - seconds: 0               # clock page only changes once a minute
+        then:
+          - component.update: lcd
+
+select:
+  - platform: template
+    name: "Display Page"
+    id: page_sel
+    options: [Face, Clock, Message, Display Frame, WebView]
+    initial_option: Face
+    optimistic: true
+    restore_value: false       # always boot on Face
+    on_value:
+      - lambda: |-
+          if (x == "Display Frame") {
+            id(frame_state) = 0;
+            id(frame_errors) = 0;
+          }
+      - component.update: lcd
+      # Fetching runs only while this page is Display Frame: start it on entry, it stops itself on exit.
+      - if:
+          condition:
+            lambda: 'return x == "Display Frame";'
+          then:
+            - script.execute: apply_frame_url
+  # Pages bundled with the display-frame service (its /presets list replaces these options a few
+  # seconds after boot) or Custom, which uses the Display Frame URL text below.
+  - platform: template
+    name: "Display Frame Source"
+    id: frame_src
+    options: [clock, Custom]
+    initial_option: clock
+    optimistic: true
+    restore_value: false       # the option list changes, so a saved index would not be reliable
+    on_value:
+      - if:
+          condition:
+            lambda: 'return id(page_sel).active_index().value_or(0) == 3;'
+          then:
+            - script.execute: apply_frame_url
+  - platform: template
+    name: "Clock Format"
+    id: clock_fmt_sel
+    options: ["12 hour", "24 hour"]
+    initial_option: "12 hour"
+    optimistic: true
+    restore_value: true        # kept in flash (NVS), survives reboots and OTA
+    on_value:
+      - component.update: lcd
+  # One choice sets the Accent, Secondary and Background lights together (cgotchi::ui::THEMES).
+  # Custom is shown when the three lights match no theme and does nothing when picked.
+  - platform: template
+    name: "Theme"
+    id: theme_sel
+    options: [Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint, Custom]   # same order as cgotchi::ui::THEMES
+    initial_option: Classic
+    optimistic: true
+    restore_value: true
+    on_value:
+      - lambda: |-
+          for (const auto &t : cgotchi::ui::THEMES) {
+            if (x != t.name) continue;
+            if (cgotchi::ui::theme_is(t, id(bg_color), id(accent_color), id(secondary_color))) return;
+            cgotchi::ui::set_light_color(id(bg_color), t.bg);
+            cgotchi::ui::set_light_color(id(accent_color), t.accent);
+            cgotchi::ui::set_light_color(id(secondary_color), t.secondary);
+          }
+      - component.update: lcd
+  - platform: template
+    name: "Face Expression"
+    id: face_sel
+    options: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink]   # same order as cgotchi::face::Expression
+    initial_option: Happy
+    optimistic: true
+    restore_value: true
+    on_value:
+      - component.update: lcd
+
+number:
+  # Highest redraw rate of the face animation. Lower saves battery and leaves more time for audio;
+  # higher is smoother. A still face redraws only for the occasional blink either way.
+  - platform: template
+    name: "Face Frame Rate"
+    id: face_fps
+    min_value: 5
+    max_value: 25
+    step: 5
+    unit_of_measurement: fps
+    mode: slider
+    optimistic: true
+    restore_value: true
+    initial_value: 20
+
+text:
+  - platform: template
+    name: "Display Frame URL"
+    id: frame_url
+    mode: text
+    max_length: 255
+    optimistic: true
+    restore_value: true
+    initial_value: !secret display_frame_url
+    set_action:
+      # Takes effect at once when the Display Frame page is showing; otherwise on next entry.
+      - if:
+          condition:
+            lambda: 'return id(page_sel).active_index().value_or(0) == 3;'
+          then:
+            - script.execute: apply_frame_url
+  - platform: template
+    name: "Message Title"
+    id: msg_title
+    mode: text
+    max_length: 16
+    optimistic: true
+    restore_value: true
+    initial_value: "Hello"
+    on_value:
+      - component.update: lcd
+  - platform: template
+    name: "Message Body"
+    id: msg_body
+    mode: text
+    max_length: 120
+    optimistic: true
+    restore_value: true
+    initial_value: "Set me from Home Assistant"
+    on_value:
+      - component.update: lcd
+
+output:
+  - platform: template
+    id: face_r
+    type: float
+    write_action: []
+  - platform: template
+    id: face_g
+    type: float
+    write_action: []
+  - platform: template
+    id: face_b
+    type: float
+    write_action: []
+  - platform: template
+    id: secondary_r
+    type: float
+    write_action: []
+  - platform: template
+    id: secondary_g
+    type: float
+    write_action: []
+  - platform: template
+    id: secondary_b
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_r
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_g
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_b
+    type: float
+    write_action: []
+
+light:
+  # Accent color picker. The three color lights below (accent, secondary, background) have dummy
+  # outputs: a light only stores the color the display reads. The Theme select sets all three. The
+  # on/off switch does nothing (except for the background, where off is black) and the brightness
+  # slider scales the color.
+  - platform: rgb
+    name: "Accent Color"
+    id: accent_color
+    red: face_r
+    green: face_g
+    blue: face_b
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 0%
+      green: 78%
+      blue: 100%
+    on_state:
+      - script.execute: sync_theme
+      - component.update: lcd
+  # Secondary color picker: supporting text (message body, clock date, dividers).
+  - platform: rgb
+    name: "Secondary Color"
+    id: secondary_color
+    red: secondary_r
+    green: secondary_g
+    blue: secondary_b
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 50%
+      green: 90%
+      blue: 100%
+    on_state:
+      - script.execute: sync_theme
+      - component.update: lcd
+  # Background color picker. Off is black; turning it on gives a dark navy to start from. The text
+  # colors switch between light and dark to match.
+  - platform: rgb
+    name: "Background Color"
+    id: bg_color
+    red: bg_r
+    green: bg_g
+    blue: bg_b
+    restore_mode: RESTORE_DEFAULT_OFF
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 0%
+      green: 25%
+      blue: 100%
+      brightness: 16%
+    on_state:
+      - script.execute: sync_theme
+      - component.update: lcd
+
+globals:
+  - id: was_speaking
+    type: bool
+    initial_value: "false"
+  - id: mic_was_on             # last mic state drawn, to redraw the mic dot when it changes
+    type: bool
+    initial_value: "false"
+  - id: va_state               # voice assistant: 0 idle, 1 listening, 2 thinking, 3 replying, 4 error
+    type: int
+    initial_value: "0"
+  - id: ota_state              # 0 idle, 1 updating, 2 failed
+    type: int
+    initial_value: "0"
+  - id: ota_pct
+    type: int
+    initial_value: "0"
+  - id: frame_state            # 0 loading, 1 playing, 2 no frame
+    type: int
+    initial_value: "0"
+  - id: frame_errors           # consecutive failed fetches
+    type: int
+    initial_value: "0"
+  - id: frame_presets          # page names from the display-frame service, then "Custom"
+    type: std::vector<std::string>
+  - id: frame_presets_loaded
+    type: bool
+    initial_value: "false"
+  - id: vol_until              # millis() until which the volume popup shows
+    type: uint32_t
+    initial_value: "0"
+
+interval:
+  # Until it succeeds, ask the display-frame service which pages it bundles and offer them in the
+  # Display Frame Source select. Fails quietly while Wi-Fi or the service is down.
+  - interval: 10s
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(frame_presets_loaded);'
+          then:
+            - http_request.get:
+                url: "${display_frame_server}/presets"
+                capture_response: true
+                max_response_buffer_size: 512
+                on_response:
+                  then:
+                    - lambda: |-
+                        id(frame_presets).clear();
+                        if (response->status_code == 200) id(frame_presets) = cgotchi::ui::split_lines(body);
+                    - if:
+                        condition:
+                          lambda: 'return !id(frame_presets).empty();'
+                        then:
+                          - lambda: |-
+                              id(frame_presets).push_back("Custom");
+                              id(frame_presets_loaded) = true;
+                              // The select keeps pointers into frame_presets, which is not changed again.
+                              FixedVector<const char *> opts;
+                              opts.init(id(frame_presets).size());
+                              for (const auto &name : id(frame_presets)) opts.push_back(name.c_str());
+                              id(frame_src).traits.set_options(opts);
+                              id(frame_src).publish_state(id(frame_presets)[0]);
+  - interval: 100ms            # frames for the boot animation (first ~2.6 s after power on)
+    then:
+      - lambda: |-
+          if (millis() < 2800) id(lcd).update();
+  - interval: 20ms            # face animation frames, only while the face is on screen and something moves
+    then:                     # (the Face Frame Rate setting caps how many of these ticks draw)
+      - lambda: |-
+          auto &face = cgotchi::face::instance();
+          face.set_fps(id(face_fps).state);
+          if (face.visible && face.needs_frame(millis())) id(lcd).update();
+  - interval: 200ms           # one redraw when audio starts or stops or the mic dot changes
+    then:
+      - lambda: |-
+          const auto mp = id(gotchi_player).state;
+          const bool playing = mp == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                               mp == media_player::MEDIA_PLAYER_STATE_ANNOUNCING;
+          const bool mic_on = id(mww).is_running() || id(va_state) == 1;
+          if (playing != id(was_speaking) || mic_on != id(mic_was_on)) id(lcd).update();
+          id(was_speaking) = playing;
+          id(mic_was_on) = mic_on;

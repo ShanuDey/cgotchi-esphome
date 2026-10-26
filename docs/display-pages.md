@@ -29,7 +29,7 @@ The **Theme** select sets all three lights at once: Classic (default), Midnight,
 Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper and Mint. Paper and Mint are light
 themes. It shows **Custom** when the three lights match no theme (picking Custom does
 nothing), so you can start from a theme and then adjust one light. The themes live in
-[colors.h](../components/face/colors.h); keep their names in sync with the select options
+[themes.h](../components/display_ui/themes.h); keep their names in sync with the select options
 in `cgotchi.yaml`, in the same order.
 
 Each light also has a color picker, and its brightness slider scales the color. The
@@ -51,7 +51,23 @@ The face is drawn by the header-only `face` component, split by concern:
 | [looks.h](../components/face/looks.h) | The `Shape` model (eye size, lids, gaze, mouth) and one function per expression. |
 | [draw.h](../components/face/draw.h) | Draws one frame from a `Shape`. No state, no timing. |
 | [face.h](../components/face/face.h) | Eases between expressions, blinks, glances around, reacts to voice and audio. |
-| [colors.h](../components/face/colors.h) | The themes, plus accent presets for the display simulator. |
+
+The screen around the face is drawn by the header-only `display_ui` component. The device and
+the display simulator both call its `render()`, so they draw the same thing. ESPHome copies only
+the files directly in a component's folder, so the pages are flat files named `<page>_page.h`:
+
+| File | Role |
+|---|---|
+| [ui.h](../components/display_ui/ui.h) | `render()`: picks the page and draws the popups over it. |
+| [state.h](../components/display_ui/state.h) | `State`: everything a frame depends on, as plain values the YAML fills in. |
+| [face_page.h](../components/display_ui/face_page.h) | The Face page: the face and its status line. |
+| [clock_page.h](../components/display_ui/clock_page.h) | The Clock page. |
+| [message_page.h](../components/display_ui/message_page.h) | The Message page, with word wrap. |
+| [frame_page.h](../components/display_ui/frame_page.h) | The Display Frame page. |
+| [widgets.h](../components/display_ui/widgets.h) | The volume popup, the mic dot and the firmware update screen. |
+| [themes.h](../components/display_ui/themes.h) | The ten themes, and reading and setting the three theme lights. |
+| [palette.h](../components/display_ui/palette.h) | Works out the screen colors (background, text, hint, accent, secondary) from the three theme lights. |
+| [text.h](../components/display_ui/text.h) | Word wrap, URL encoding and line splitting. Plain C++, tested in [tests/](../components/display_ui/tests/test_text.cpp). |
 
 Between expressions the face morphs rather than snapping. While nothing moves, it
 redraws only for the occasional blink or glance, which keeps battery use low.

@@ -2,7 +2,7 @@
 
 ## How the components are sourced
 
-`cgotchi.yaml` loads its two custom components from GitHub:
+`cgotchi.yaml` loads its three custom components from GitHub:
 
 ```yaml
 external_components:
@@ -11,13 +11,14 @@ external_components:
       url: https://github.com/ShanuDey/cgotchi-esphome
       ref: main
       path: components
-    components: [remote_webview, face]
+    components: [remote_webview, display_ui, face]
 ```
 
 - `remote_webview`: the WebView client, a patched copy of strange-v's
   RemoteWebViewClient.
-- `face`: header-only; the face expressions, animation and drawing, plus the color
-  presets. See [display-pages.md](display-pages.md#face).
+- `face`: header-only; the face expressions, animation and drawing.
+- `display_ui`: header-only; draws the screen (one header per page), the themes and colors.
+  Loads `face` with it. See [display-pages.md](display-pages.md#face).
 
 This is what lets the config work standalone in the HA builder with no local
 files. The catch: edits to `components/` have no effect on a build until you push
@@ -37,6 +38,14 @@ to build what the branch on GitHub will give users.
 
 ESPHome caches the git clone; use `esphome config --clean` (or delete the cached
 clone under `.esphome/`) after pushing a change.
+
+## Config layout
+
+`cgotchi.yaml` holds the device identity and core services and lists the feature files in
+`packages/`: `hardware.yaml`, `display.yaml`, `voice.yaml`, `controls.yaml` and
+`webview.yaml`. Each file starts with what it uses from the others. C++ for the display lives in
+`components/display_ui/` (`ui.h` draws the pages), not in the YAML, so lambdas stay short and the
+display simulator draws the same thing. `esphome config cgotchi.yaml` prints the merged result.
 
 ## Releasing
 

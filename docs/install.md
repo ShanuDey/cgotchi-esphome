@@ -5,8 +5,10 @@ Two ways to build: the HA ESPHome Device Builder (quick), or a local build with
 
 ## Quick install (HA ESPHome Device Builder)
 
-Nothing to download or copy. The config and its two custom components
-(`remote_webview`, `face`) are fetched from this repo when you build.
+Nothing to download or copy. The config and its three custom components
+(`remote_webview`, `display_ui`, `face`) are fetched from this repo when you build. If you copy
+the `external_components:` block from `cgotchi.yaml` into your own config, keep all three names
+in its `components:` list.
 
 1. In HA, open **ESPHome Device Builder**, click **Secrets**, and add the keys
    from [secrets.example.yaml](../secrets.example.yaml) with your own values (see

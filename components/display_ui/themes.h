@@ -1,21 +1,9 @@
 #pragma once
-// Named colors: the accent presets (display simulator) and the themes of the "Theme" select in
-// cgotchi.yaml. Keep the theme names in sync with the select options, in the same order.
+// The themes of the Theme select in cgotchi.yaml. Keep names and order in sync with its options.
 #include <cmath>
 
 namespace cgotchi {
-namespace face {
-
-struct ColorPreset {
-  const char *name;
-  float r, g, b;
-};
-
-static const ColorPreset FACE_PRESETS[] = {
-    {"Blue", 0.0f, 0.78f, 1.0f},   {"Green", 0.2f, 1.0f, 0.3f},  {"Pink", 1.0f, 0.4f, 0.7f},
-    {"Orange", 1.0f, 0.55f, 0.0f}, {"Purple", 0.65f, 0.3f, 1.0f}, {"Red", 1.0f, 0.2f, 0.2f},
-    {"Yellow", 1.0f, 0.9f, 0.1f},  {"White", 1.0f, 1.0f, 1.0f},
-};
+namespace ui {
 
 // A theme sets the three theme lights together. Values are the final screen colors (0 to 1).
 struct Theme {
@@ -78,5 +66,14 @@ inline bool theme_is(const Theme &t, L *bg, L *accent, L *secondary) {
   return light_is(bg, t.bg, true) && light_is(accent, t.accent, false) && light_is(secondary, t.secondary, false);
 }
 
-}  // namespace face
+// The theme the three lights match, or "Custom".
+template <typename L>
+inline const char *theme_name_for(L *bg, L *accent, L *secondary) {
+  for (const auto &t : THEMES) {
+    if (theme_is(t, bg, accent, secondary)) return t.name;
+  }
+  return "Custom";
+}
+
+}  // namespace ui
 }  // namespace cgotchi

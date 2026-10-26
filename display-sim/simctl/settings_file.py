@@ -12,32 +12,45 @@ import time
 from pathlib import Path
 
 from .config import SETTINGS_EXAMPLE_PATH, SETTINGS_PATH
-from .meta import Meta
-from .models import HEX_PATTERN, Settings
+from .meta import FPS_MAX, FPS_MIN, FPS_STEP, MESSAGE_BODY_MAX, MESSAGE_TITLE_MAX, Meta
+from .models import CLOCK_TIME, HEX_PATTERN, Settings
 
 HEADER = "# Written by control.py. Edit freely: the simulator applies saved changes.\n"
 COMMENT = re.compile(r"\s#.*$")   # a comment starts at "#" after a space; a value may itself start with "#" (colors)
 HEX = re.compile(HEX_PATTERN)
+TEXTS = {"message_title": MESSAGE_TITLE_MAX, "message_body": MESSAGE_BODY_MAX}   # key: longest value
 ON = {"on", "true", "1"}
 OFF = {"off", "false", "0"}
 
 
+def _on_off(value: bool) -> str:
+    return "on" if value else "off"
+
+
 def render(settings: Settings) -> str:
     lines = [
+        f"page = {settings.page}",
         f"expression = {settings.expression}",
         f"voice = {settings.voice}",
-        f"speaking = {'on' if settings.speaking else 'off'}",
+        f"speaking = {_on_off(settings.speaking)}",
         f"accent = {settings.accent}",
+        f"secondary = {settings.secondary}",
         f"background = {settings.background}",
         f"fps = {settings.fps}",
+        f"clock_24h = {_on_off(settings.clock_24h)}",
+        f"clock_time = {settings.clock_time}",
+        f"message_title = {settings.message_title}",
+        f"message_body = {settings.message_body}",
     ]
     return HEADER + "\n".join(lines) + "\n"
 
 
 def parse(text: str, meta: Meta) -> Settings:
     """Reads settings.txt text. Anything unusable keeps its default."""
-    settings = Settings(expression=meta.expressions[0], accent=meta.colors[0].hex)
+    theme = meta.themes[0]
+    settings = Settings(expression=meta.expressions[0], accent=theme.accent.hex, secondary=theme.secondary.hex)
     options = {
+        "page": meta.pages,
         "expression": meta.expressions,
         "voice": meta.voices,
     }
@@ -48,21 +61,30 @@ def parse(text: str, meta: Meta) -> Settings:
         key, sep, value = (part.strip() for part in line.partition("="))
         if not sep:
             continue
+        key = key.lower()
+        if key in TEXTS:   # literal text: a "#" in it is not a comment
+            setattr(settings, key, value[:TEXTS[key]])
+            continue
         value = (value[:1] + COMMENT.sub("", value[1:])).strip()   # keep a leading "#": it is a color, not a comment
-        key, low = key.lower(), value.lower()
+        low = value.lower()
         try:
             if key in options:
                 match = next((o for o in options[key] if o.lower() == low), None)
                 if match:
                     setattr(settings, key, match)
-            elif key in ("accent", "background"):
+            elif key in ("accent", "secondary", "background"):
                 if HEX.match(low):
                     setattr(settings, key, low)
-            elif key == "speaking":
+            elif key in ("speaking", "clock_24h"):
                 if low in ON | OFF:
-                    settings.speaking = low in ON
+                    setattr(settings, key, low in ON)
+            elif key == "clock_time":
+                if not value or CLOCK_TIME.match(value):
+                    settings.clock_time = value
             elif key == "fps":
-                settings.fps = int(float(value))
+                fps = int(float(value))
+                if FPS_MIN <= fps <= FPS_MAX and (fps - FPS_MIN) % FPS_STEP == 0:
+                    settings.fps = fps
         except ValueError:
             continue
     return settings

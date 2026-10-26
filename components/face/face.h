@@ -12,7 +12,6 @@
 #include <math.h>
 #include <stdint.h>
 
-#include "colors.h"
 #include "draw.h"
 #include "looks.h"
 

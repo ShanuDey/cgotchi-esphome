@@ -1,0 +1,82 @@
+# Voice: media player, wake word, voice assistant. Uses: mic, spk (hardware.yaml), lcd (display.yaml).
+
+# Lets HA play audio / TTS on the device: Media browser, tts.speak, announcements.
+media_player:
+  - platform: speaker
+    name: "Speaker"
+    id: gotchi_player
+    volume_increment: 0.05     # step per volume-button press (20 even steps, about 3 dB each)
+    # The ES8311 register is linear in dB (0.75 = 0 dB): below 0.3 is inaudible, above 0.8 clips.
+    # The player rescales its 0-100% into this window, so every step is audible and clean.
+    volume_min: 0.3
+    volume_max: 0.8
+    announcement_pipeline:
+      speaker: spk
+      format: FLAC
+      sample_rate: 16000
+      num_channels: 1
+
+# On-device wake word. HA lists these models in the device's "Wake word" select because it is
+# linked to voice_assistant below. Runs only while the "Wake Word Mode" switch is on.
+micro_wake_word:
+  id: mww
+  microphone: mic
+  models:
+    - okay_nabu
+    - hey_jarvis
+  on_wake_word_detected:
+    - voice_assistant.start:
+        wake_word: !lambda return wake_word;
+
+# Voice assistant: hold Volume Up to talk, or turn on the "Wake Word Mode" switch in HA to
+# listen for the wake word instead. HA's Assist pipeline (speech to text, conversation
+# agent, text to speech) and the wake word are chosen in the device's settings in HA.
+# Replies play through the Speaker media player above.
+voice_assistant:
+  id: va
+  microphone: mic
+  media_player: gotchi_player
+  micro_wake_word: mww
+  use_wake_word: false         # wake word is detected on the device, not by HA
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  volume_multiplier: 2.0
+  on_listening:
+    - lambda: |-
+        id(va_state) = 1;
+    - component.update: lcd
+  on_stt_vad_end:
+    - lambda: |-
+        id(va_state) = 2;
+    - component.update: lcd
+  on_tts_end:
+    - lambda: |-
+        id(va_state) = 3;
+    - component.update: lcd
+  on_error:
+    - lambda: |-
+        id(va_state) = 4;
+    - component.update: lcd
+    - delay: 3s
+    - lambda: |-
+        id(va_state) = 0;
+    - component.update: lcd
+    - script.execute: start_wake_word
+  on_end:
+    - delay: 100ms
+    - lambda: |-
+        if (id(va_state) != 4) id(va_state) = 0;
+    - component.update: lcd
+    - script.execute: start_wake_word
+
+switch:
+  # Off: push-to-talk only. On: the on-device wake word also listens. Remembered across reboots.
+  - platform: template
+    name: "Wake Word Mode"
+    id: wake_word_mode
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - micro_wake_word.start:
+    turn_off_action:
+      - micro_wake_word.stop:

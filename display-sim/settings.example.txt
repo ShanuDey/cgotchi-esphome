@@ -5,9 +5,16 @@
 # skipped, and values are not case sensitive. The file is the whole state: a line you remove
 # goes back to its default. The control page (control.py) writes this same file.
 
+page = Face              # Face, Clock, Message
 expression = Happy       # Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink
 voice = Idle             # Idle, Listening, Thinking, Replying, Error
 speaking = off           # on or off
-accent = #00c7ff        # face color, #rrggbb (the device Accent Color light)
+accent = #00c7ff        # face, clock digits, message title (the device Accent Color)
+secondary = #80e6ff     # clock date, message body, dividers (the device Secondary Color)
 background = #000000    # page background, #rrggbb (black is the device light being off)
 fps = 20                 # 5 to 25, in steps of 5
+clock_24h = off          # on for 24 hour time (the device Clock Format)
+clock_time =             # HH:MM freezes the clock; empty shows this computer's time
+# Message text is literal (16 and 120 characters at most): no comments on these lines.
+message_title = Hello
+message_body = Set me from Home Assistant
