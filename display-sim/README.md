@@ -35,7 +35,7 @@ not touched. The window appears through WSLg, which ships with Windows 11.
 From the repo root in PowerShell (or any shell on Linux or macOS):
 
 ```powershell
-uv run --group sim display-sim/control.py
+uv run display-sim/control.py
 ```
 
 This starts the simulator in WSL, opens the control page at <http://localhost:8081>, and

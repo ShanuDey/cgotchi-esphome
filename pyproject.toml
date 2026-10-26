@@ -11,15 +11,19 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "display-frame",
+    "display-sim",
     "esphome==2026.10.0",
     "esptool>=5.4.0",
 ]
-sim = [
-    "fastapi>=0.162.0",
-    "uvicorn>=0.54.0",
-]
 
-# display-frame is a workspace member so the editor and `uv sync --all-packages`
-# see its dependencies; they are declared only in display-frame/pyproject.toml.
+# display-frame and display-sim are workspace members so the editor and
+# `uv sync --all-packages` see their dependencies; they are declared only in each
+# member's own pyproject.toml.
 [tool.uv.workspace]
-members = ["display-frame"]
+members = ["display-frame", "display-sim"]
+
+# Both members are in the default dev group so a plain `uv run <member>/<script>.py` works.
+[tool.uv.sources]
+display-frame = { workspace = true }
+display-sim = { workspace = true }
