@@ -7,15 +7,16 @@ expression, voice state, color and frame rate while it runs, like Home Assistant
 device. The page writes settings.txt, which the simulator polls. See README.md.
 """
 import argparse
+import logging
 import threading
 import webbrowser
 
 import uvicorn
 
-from simctl.api import create_app
+from simctl.app import create_app
+from simctl.face_headers import load_meta
 from simctl.launcher import Simulator
-from simctl.meta import load_meta
-from simctl.settings import SettingsFile
+from simctl.settings_file import SettingsFile
 
 
 def main() -> None:
@@ -26,21 +27,17 @@ def main() -> None:
     parser.add_argument("--distro", default="Ubuntu", help="WSL distribution that runs the simulator (Windows only)")
     args = parser.parse_args()
 
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     meta = load_meta()   # fails early, with a clear message, if looks.h is not in the expected style
     simulator = Simulator(args.distro, managed=not args.no_sim)
-    app = create_app(meta, SettingsFile(meta), simulator)
+    app = create_app(meta, SettingsFile(meta), simulator)   # starts and stops the simulator with the server
 
-    if simulator.managed:
-        simulator.start()
     url = f"http://localhost:{args.port}"
     if not args.no_browser:
         threading.Timer(1.5, webbrowser.open, args=[url]).start()
-    print(f"control page: {url}")
-    try:
-        # The page keeps a connection open and polls, so do not wait long for it on Ctrl+C.
-        uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning", timeout_graceful_shutdown=2)
-    finally:
-        simulator.stop()
+    logging.info("control page: %s", url)
+    # The page keeps a connection open and polls, so do not wait long for it on Ctrl+C.
+    uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning", timeout_graceful_shutdown=2)
 
 
 if __name__ == "__main__":

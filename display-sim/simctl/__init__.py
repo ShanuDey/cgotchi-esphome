@@ -1,14 +1,12 @@
 """Control page for the display simulator: a small FastAPI app that edits settings.txt.
 
-    meta      what can be set, read from the face component's headers (no second copy)
-    settings  the settings model and the settings.txt reader and writer
-    api       the FastAPI routes
-    launcher  starts, stops and restarts the simulator itself (in WSL on Windows)
+    config         paths
+    meta           what can be set (plain data: expressions, voices, colors, themes, fps range)
+    face_headers   reads that data from the face component's headers (no second copy)
+    models         the request and response models of the API
+    settings_file  the settings.txt reader and writer
+    deps           what the routes depend on
+    routes         the API endpoints
+    app            builds the FastAPI app
+    launcher       starts, stops and restarts the simulator itself (in WSL on Windows)
 """
-from pathlib import Path
-
-SIM_DIR = Path(__file__).resolve().parents[1]            # display-sim
-FACE_DIR = SIM_DIR.parent / "components" / "face"        # components/face
-SETTINGS_PATH = SIM_DIR / "settings.txt"
-SETTINGS_EXAMPLE_PATH = SIM_DIR / "settings.example.txt"
-WEB_DIR = SIM_DIR / "web"

@@ -92,7 +92,7 @@ the page puts everything back to what it says.
 
 ## What the page expects from the face headers
 
-`simctl/meta.py` reads the expression and voice names from the enums in
+`simctl/face_headers.py` reads the expression and voice names from the enums in
 `components/face/looks.h`, and the accent swatches from `colors.h`, with simple patterns. Keep
 their existing style. If it drifts, the page stops at startup with a message saying what it
 could not find. A new expression or color shows up on the page after a restart.
@@ -103,9 +103,20 @@ could not find. A new expression or color shows up on the page after a restart.
 |---|---|
 | `display-sim.yaml` | the simulator's ESPHome config (SDL window, settings polling, key bindings) |
 | `run.sh` | runs it in WSL |
-| `control.py`, `simctl/` | the control page's FastAPI server (`meta`, `settings`, `api`, `launcher`) |
+| `control.py`, `simctl/` | the control page's FastAPI server (see the module list in `simctl/__init__.py`) |
+| `tests/` | pytest tests for the parsers, the settings file and the API |
 | `web/` | the page: plain HTML, CSS and JavaScript, no build step |
 | `settings.example.txt` | documented template for `settings.txt` |
+
+## Tests
+
+```powershell
+uv run pytest display-sim/tests
+```
+
+CI ([display-sim.yml](../.github/workflows/display-sim.yml)) runs these and validates the simulator's
+config. To validate the config yourself, run `./run.sh config` in WSL: ESPHome's SDL display needs
+`sdl2-config`, so `esphome config` does not work on Windows.
 
 ## Keeping it in step with the device
 

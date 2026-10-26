@@ -1,4 +1,4 @@
-"""The settings model and the settings.txt file the simulator polls.
+"""The settings.txt file the simulator polls.
 
 The file stands in for Home Assistant: it holds the same entities HA sets on the device. It is the
 whole state, so the simulator resets whatever it does not mention. This module reads hand-edited
@@ -11,50 +11,27 @@ import shutil
 import time
 from pathlib import Path
 
-from pydantic import BaseModel
-
-from . import SETTINGS_EXAMPLE_PATH, SETTINGS_PATH
-from .meta import FPS_DEFAULT, FPS_MAX, FPS_MIN, FPS_STEP, Meta
+from .config import SETTINGS_EXAMPLE_PATH, SETTINGS_PATH
+from .meta import Meta
+from .models import HEX_PATTERN, Settings
 
 HEADER = "# Written by control.py. Edit freely: the simulator applies saved changes.\n"
 COMMENT = re.compile(r"\s#.*$")   # a comment starts at "#" after a space; a value may itself start with "#" (colors)
-HEX = re.compile(r"^#[0-9a-f]{6}$")
+HEX = re.compile(HEX_PATTERN)
 ON = {"on", "true", "1"}
 OFF = {"off", "false", "0"}
 
 
-class Settings(BaseModel):
-    expression: str
-    voice: str = "Idle"
-    speaking: bool = False
-    accent: str
-    background: str = "#000000"
-    fps: int = FPS_DEFAULT
-
-    def problems(self, meta: Meta) -> list[str]:
-        """What is wrong with these values; empty when they are fine."""
-        found = []
-        if self.expression not in meta.expressions:
-            found.append(f"unknown expression '{self.expression}'")
-        if self.voice not in meta.voices:
-            found.append(f"unknown voice '{self.voice}'")
-        for key in ("accent", "background"):
-            if not HEX.match(getattr(self, key)):
-                found.append(f"{key} must be a color like #00c7ff")
-        if not FPS_MIN <= self.fps <= FPS_MAX or (self.fps - FPS_MIN) % FPS_STEP:
-            found.append(f"fps must be {FPS_MIN} to {FPS_MAX} in steps of {FPS_STEP}")
-        return found
-
-    def render(self) -> str:
-        lines = [
-            f"expression = {self.expression}",
-            f"voice = {self.voice}",
-            f"speaking = {'on' if self.speaking else 'off'}",
-            f"accent = {self.accent}",
-            f"background = {self.background}",
-            f"fps = {self.fps}",
-        ]
-        return HEADER + "\n".join(lines) + "\n"
+def render(settings: Settings) -> str:
+    lines = [
+        f"expression = {settings.expression}",
+        f"voice = {settings.voice}",
+        f"speaking = {'on' if settings.speaking else 'off'}",
+        f"accent = {settings.accent}",
+        f"background = {settings.background}",
+        f"fps = {settings.fps}",
+    ]
+    return HEADER + "\n".join(lines) + "\n"
 
 
 def parse(text: str, meta: Meta) -> Settings:
@@ -92,18 +69,23 @@ def parse(text: str, meta: Meta) -> Settings:
 
 
 class SettingsFile:
-    def __init__(self, meta: Meta, path: Path = SETTINGS_PATH):
+    def __init__(self, meta: Meta, path: Path = SETTINGS_PATH, example: Path = SETTINGS_EXAMPLE_PATH):
         self.meta = meta
         self.path = path
+        self.example = example
+
+    def ensure(self) -> None:
+        """Creates the file from the example if it is missing, so the simulator finds it."""
+        if not self.path.exists():
+            shutil.copy(self.example, self.path)
 
     def read(self) -> Settings:
-        if not self.path.exists():
-            shutil.copy(SETTINGS_EXAMPLE_PATH, self.path)
-        return parse(self.path.read_text(encoding="utf-8"), self.meta)
+        source = self.path if self.path.exists() else self.example
+        return parse(source.read_text(encoding="utf-8"), self.meta)
 
     def write(self, settings: Settings) -> None:
         tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(settings.render(), encoding="utf-8", newline="\n")
+        tmp.write_text(render(settings), encoding="utf-8", newline="\n")
         for attempt in range(5):   # the simulator (in WSL) may have the file open for a moment
             try:
                 os.replace(tmp, self.path)
