@@ -6,6 +6,7 @@ files leniently (bad lines are skipped, option names are case insensitive) and w
 the simulator never sees half a file.
 """
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -16,6 +17,8 @@ from . import SETTINGS_EXAMPLE_PATH, SETTINGS_PATH
 from .meta import FPS_DEFAULT, FPS_MAX, FPS_MIN, FPS_STEP, Meta
 
 HEADER = "# Written by control.py. Edit freely: the simulator applies saved changes.\n"
+COMMENT = re.compile(r"\s#.*$")   # a comment starts at "#" after a space; a value may itself start with "#" (colors)
+HEX = re.compile(r"^#[0-9a-f]{6}$")
 ON = {"on", "true", "1"}
 OFF = {"off", "false", "0"}
 
@@ -24,7 +27,8 @@ class Settings(BaseModel):
     expression: str
     voice: str = "Idle"
     speaking: bool = False
-    color: str = "Blue"
+    accent: str
+    background: str = "#000000"
     fps: int = FPS_DEFAULT
 
     def problems(self, meta: Meta) -> list[str]:
@@ -34,8 +38,9 @@ class Settings(BaseModel):
             found.append(f"unknown expression '{self.expression}'")
         if self.voice not in meta.voices:
             found.append(f"unknown voice '{self.voice}'")
-        if self.color not in {c.name for c in meta.colors}:
-            found.append(f"unknown color '{self.color}'")
+        for key in ("accent", "background"):
+            if not HEX.match(getattr(self, key)):
+                found.append(f"{key} must be a color like #00c7ff")
         if not FPS_MIN <= self.fps <= FPS_MAX or (self.fps - FPS_MIN) % FPS_STEP:
             found.append(f"fps must be {FPS_MIN} to {FPS_MAX} in steps of {FPS_STEP}")
         return found
@@ -45,7 +50,8 @@ class Settings(BaseModel):
             f"expression = {self.expression}",
             f"voice = {self.voice}",
             f"speaking = {'on' if self.speaking else 'off'}",
-            f"color = {self.color}",
+            f"accent = {self.accent}",
+            f"background = {self.background}",
             f"fps = {self.fps}",
         ]
         return HEADER + "\n".join(lines) + "\n"
@@ -53,23 +59,28 @@ class Settings(BaseModel):
 
 def parse(text: str, meta: Meta) -> Settings:
     """Reads settings.txt text. Anything unusable keeps its default."""
-    settings = Settings(expression=meta.expressions[0])
+    settings = Settings(expression=meta.expressions[0], accent=meta.colors[0].hex)
     options = {
         "expression": meta.expressions,
         "voice": meta.voices,
-        "color": [c.name for c in meta.colors],
     }
     for raw in text.splitlines():
-        line = raw.split("#", 1)[0].strip()
+        line = raw.strip()
+        if line.startswith("#"):
+            continue
         key, sep, value = (part.strip() for part in line.partition("="))
         if not sep:
             continue
+        value = (value[:1] + COMMENT.sub("", value[1:])).strip()   # keep a leading "#": it is a color, not a comment
         key, low = key.lower(), value.lower()
         try:
             if key in options:
                 match = next((o for o in options[key] if o.lower() == low), None)
                 if match:
                     setattr(settings, key, match)
+            elif key in ("accent", "background"):
+                if HEX.match(low):
+                    setattr(settings, key, low)
             elif key == "speaking":
                 if low in ON | OFF:
                     settings.speaking = low in ON

@@ -15,6 +15,7 @@ let lastTouch = 0;
 const expressionButtons = new Map();
 const voiceButtons = new Map();
 const colorButtons = new Map();
+const themeButtons = new Map();
 
 // ---- talking to the server ------------------------------------------------------------------
 
@@ -96,17 +97,33 @@ function buildChips(container, names, buttons, onPick) {
   }
 }
 
+const toHex = (rgb) => `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+
+// A theme sets the accent and background (the simulator has no secondary color).
+function buildThemes() {
+  for (const theme of meta.themes) {
+    const button = chip(theme.name, () => {
+      state.accent = toHex(theme.accent);
+      state.background = toHex(theme.bg);
+      scheduleSave();
+      sync();
+    });
+    themeButtons.set(theme.name, button);
+    $("#themes").append(button);
+  }
+}
+
 function buildColors() {
   for (const { name, rgb } of meta.colors) {
     const button = chip("", () => {
-      state.color = name;
+      state.accent = toHex(rgb);
       scheduleSave();
       sync();
     });
     button.style.background = `rgb(${rgb.join(",")})`;
     button.title = name;
     button.setAttribute("aria-label", name);
-    colorButtons.set(name, button);
+    colorButtons.set(toHex(rgb), button);
     $("#colors").append(button);
   }
 }
@@ -122,7 +139,15 @@ function bindControls() {
     scheduleSave();
     sync();
   });
+  buildThemes();
   buildColors();
+  for (const key of ["accent", "background"]) {
+    $(`#${key}`).addEventListener("input", (event) => {
+      state[key] = event.target.value;
+      scheduleSave();
+      sync();
+    });
+  }
 
   $("#speaking").addEventListener("change", (event) => {
     state.speaking = event.target.checked;
@@ -143,7 +168,13 @@ function bindControls() {
 function sync() {
   for (const [name, button] of expressionButtons) button.setAttribute("aria-pressed", name === state.expression);
   for (const [name, button] of voiceButtons) button.setAttribute("aria-pressed", name === state.voice);
-  for (const [name, button] of colorButtons) button.setAttribute("aria-pressed", name === state.color);
+  for (const [hex, button] of colorButtons) button.setAttribute("aria-pressed", hex === state.accent);
+  for (const theme of meta.themes) {
+    const on = toHex(theme.accent) === state.accent && toHex(theme.bg) === state.background;
+    themeButtons.get(theme.name).setAttribute("aria-pressed", on);
+  }
+  $("#accent").value = state.accent;
+  $("#background").value = state.background;
   $("#speaking").checked = state.speaking;
   $("#fps").value = state.fps;
   $("#fps-value").textContent = `${state.fps} fps`;

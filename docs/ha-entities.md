@@ -15,8 +15,10 @@ What the device page in HA shows.
 | Clock Format | select | 12 or 24 hour. |
 | Face Expression | select | Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink. |
 | Face Frame Rate | number | Highest face animation rate, 5 to 25 fps (default 20). Lower saves battery. Kept across reboots. |
-| Face Color | light | Color picker for the face only. |
-| Face Color Preset | select | Named face colors, or Custom. |
+| Theme | select | Sets the three color lights together (Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint), or Custom. |
+| Accent Color | light | Headline color of the Face, Clock and Message pages. |
+| Secondary Color | light | Supporting text (message body, clock date). |
+| Background Color | light | Page background, dark or light. Off is black. |
 | Message Title / Message Body | text | Content of the Message page. |
 | Wake Word Mode | switch | On-device wake word, see [voice-assistant.md](voice-assistant.md). |
 | Mic Level | sensor | Loudness in dB. |

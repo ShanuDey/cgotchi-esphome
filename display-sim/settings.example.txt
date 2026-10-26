@@ -8,5 +8,6 @@
 expression = Happy       # Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink
 voice = Idle             # Idle, Listening, Thinking, Replying, Error
 speaking = off           # on or off
-color = Blue             # Blue, Green, Pink, Orange, Purple, Red, Yellow, White
+accent = #00c7ff        # face color, #rrggbb (the device Accent Color light)
+background = #000000    # page background, #rrggbb (black is the device light being off)
 fps = 20                 # 5 to 25, in steps of 5

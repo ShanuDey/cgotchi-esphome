@@ -47,8 +47,7 @@ external_components:
       path: components
     components: [remote_webview, face]
 
-# Face engine (components/face/): expressions, animation, drawing and the color presets
-# (cgotchi::face::FACE_PRESETS) used by the display and light lambdas.
+# Face engine (components/face/): expressions, animation and drawing.
 face:
 
 # Octal PSRAM is mandatory on this board (reference/cheeko-gotchi/SKILL.md Gotcha 1).
@@ -173,7 +172,48 @@ display:
     update_interval: never     # redraws come from entity changes, the minute tick and the face animation interval
     auto_clear_enabled: false  # the lambda fills the screen itself; the WebView page must not be cleared
     lambda: |-
-      const Color BG(0, 0, 0), FG(255, 255, 255), ACCENT(0, 200, 255), DIM(130, 130, 130);
+      // Theme, chosen in HA. BG is the background of the Face, Clock and Message pages. ACCENT is the
+      // headline color (face, clock digits, message title, volume and update bars) and SECONDARY the
+      // supporting text (message body, date, dividers). The text (FG) and hint (DIM) colors follow the
+      // background: light on a dark one, dark on a light one. The status colors (mic green, error red)
+      // stay fixed.
+      // ESPHome keeps a light's RGB at full strength (the strongest channel is always 100%), so how
+      // dark a color is lives in the brightness slider: a theme light's color is its RGB scaled by
+      // that. The accent and secondary ignore the on/off switch; for the background, off is black.
+      auto read = [](const light::LightColorValues &v, float &r, float &g, float &b) {
+        const float k = v.get_brightness() * v.get_color_brightness();
+        r = v.get_red() * k; g = v.get_green() * k; b = v.get_blue() * k;
+      };
+      auto lum = [](float r, float g, float b) { return 0.2126f * r + 0.7152f * g + 0.0722f * b; };
+      float bgr, bgg, bgb;
+      read(id(bg_color).remote_values, bgr, bgg, bgb);
+      if (!id(bg_color).remote_values.is_on()) bgr = bgg = bgb = 0.0f;
+      const Color BG((uint8_t) (bgr * 255), (uint8_t) (bgg * 255), (uint8_t) (bgb * 255));
+      const float bl = lum(bgr, bgg, bgb);
+      const bool light_bg = bl > 0.5f;
+      const Color FG = light_bg ? Color(0, 0, 0) : Color(255, 255, 255);
+      const Color DIM = light_bg ? Color(110, 110, 110) : Color(130, 130, 130);
+
+      // An accent or secondary too close to the background is pushed away from it (brighter on a
+      // dark background, darker on a light one) so it never vanishes.
+      auto fit = [&](float &r, float &g, float &b) {
+        const float l = lum(r, g, b);
+        if (light_bg) {
+          const float maxl = bl - 0.5f;
+          if (l > maxl) { const float f = l > 0.0f ? maxl / l : 0.0f; r *= f; g *= f; b *= f; }
+        } else {
+          const float minl = bl + 0.3f;
+          if (l <= 0.0f) { r = g = b = minl; }
+          else if (l < minl) { const float f = minl / l; r = fminf(r * f, 1.0f); g = fminf(g * f, 1.0f); b = fminf(b * f, 1.0f); }
+        }
+      };
+      float ar, ag, ab, sr, sg, sb;
+      read(id(accent_color).remote_values, ar, ag, ab);
+      read(id(secondary_color).remote_values, sr, sg, sb);
+      fit(ar, ag, ab);
+      fit(sr, sg, sb);
+      const Color ACCENT((uint8_t) (ar * 255), (uint8_t) (ag * 255), (uint8_t) (ab * 255));
+      const Color SECONDARY((uint8_t) (sr * 255), (uint8_t) (sg * 255), (uint8_t) (sb * 255));
 
       // Volume popup: a bar and percentage for 1.5 s after a volume button press (show_volume
       // script). Kept inside the bottom safe margin because the screen corners are cropped.
@@ -181,7 +221,7 @@ display:
       auto draw_volume = [&]() {
         const int pct = (int) roundf(id(gotchi_player).volume * 100.0f);
         it.filled_rectangle(12, 244, 216, 38, BG);
-        it.rectangle(12, 244, 216, 38, DIM);
+        it.rectangle(12, 244, 216, 38, SECONDARY);
         it.rectangle(24, 255, 130, 16, FG);
         it.filled_rectangle(26, 257, (126 * pct) / 100, 12, ACCENT);
         it.printf(192, 263, id(font_small), FG, TextAlign::CENTER, "%d%%", pct);
@@ -253,19 +293,16 @@ display:
       if (speaking || booting || va != 0) page = 0;          // face talks while audio plays
 
       if (page == 0) {
-        // Face: components/face/ owns the expressions, animation and drawing. The face color is
-        // chosen in HA; the clock, message and OTA screens keep the blue ACCENT.
-        const auto &fc = id(face_color).remote_values;
-        const Color FACE((uint8_t) (fc.get_red() * 255), (uint8_t) (fc.get_green() * 255), (uint8_t) (fc.get_blue() * 255));
+        // Face: components/face/ owns the expressions, animation and drawing, in the accent color.
         face.visible = true;
         face.update({(cgotchi::face::Expression) expr, (cgotchi::face::Voice) va, speaking, booting}, up);
-        face.draw(it, FACE, BG, up);
+        face.draw(it, ACCENT, BG, up);
 
         if (speaking) it.print(120, 262, id(font_small), DIM, TextAlign::TOP_CENTER, "speaking...");
-        else if (va == 1) it.print(120, 262, id(font_small), FACE, TextAlign::TOP_CENTER, "listening...");
+        else if (va == 1) it.print(120, 262, id(font_small), ACCENT, TextAlign::TOP_CENTER, "listening...");
         else if (va == 2) it.print(120, 262, id(font_small), DIM, TextAlign::TOP_CENTER, "thinking...");
         else if (va == 4) it.print(120, 262, id(font_small), Color(255, 80, 80), TextAlign::TOP_CENTER, "voice error");
-        if (booting && up >= 1200) it.print(120, 255, id(font_med), FACE, TextAlign::TOP_CENTER, "Hello!");
+        if (booting && up >= 1200) it.print(120, 255, id(font_med), ACCENT, TextAlign::TOP_CENTER, "Hello!");
       } else if (page == 1) {
         auto now = id(ha_time).now();
         if (now.is_valid()) {
@@ -278,19 +315,19 @@ display:
             snprintf(hm, sizeof(hm), "%d:%02d", hour12, now.minute);
           }
           it.print(120, 90, id(font_clock), ACCENT, TextAlign::TOP_CENTER, hm);
-          it.strftime(120, 180, id(font_med), FG, TextAlign::TOP_CENTER, "%a %d %b", now);
+          it.strftime(120, 180, id(font_med), SECONDARY,TextAlign::TOP_CENTER, "%a %d %b", now);
         } else {
           it.print(120, 130, id(font_med), DIM, TextAlign::TOP_CENTER, "waiting for time");
         }
       } else {
         it.print(120, 24, id(font_med), ACCENT, TextAlign::TOP_CENTER, id(msg_title).state.c_str());
-        it.filled_rectangle(20, 64, 200, 2, DIM);
+        it.filled_rectangle(20, 64, 200, 2, SECONDARY);
         // Word-wrap the body at 18 characters per line.
         const std::string body = id(msg_body).state;
         std::string word, line;
         int y = 80;
         auto emit = [&](const std::string &s) {
-          it.print(18, y, id(font_small), FG, TextAlign::TOP_LEFT, s.c_str());
+          it.print(18, y, id(font_small), SECONDARY, TextAlign::TOP_LEFT, s.c_str());
           y += 26;
         };
         for (size_t i = 0; i <= body.size(); i++) {
@@ -345,6 +382,20 @@ image:
           wait_ms: 1000
 
 script:
+  # Shows which theme the three color lights match (Custom when none), after any of them changes.
+  - id: sync_theme
+    mode: restart
+    then:
+      - lambda: |-
+          const char *match = "Custom";
+          for (const auto &t : cgotchi::face::THEMES) {
+            if (cgotchi::face::theme_is(t, id(bg_color), id(accent_color), id(secondary_color))) {
+              match = t.name;
+              break;
+            }
+          }
+          if (id(theme_sel).current_option() != match) id(theme_sel).make_call().set_option(match).perform();
+
   # Resume on-device wake word listening after the reply has played, but only in Wake Word Mode.
   - id: start_wake_word
     mode: restart
@@ -491,24 +542,25 @@ select:
     restore_value: true        # kept in flash (NVS), survives reboots and OTA
     on_value:
       - component.update: lcd
+  # One choice sets the Accent, Secondary and Background lights together (cgotchi::face::THEMES).
+  # Custom is shown when the three lights match no theme and does nothing when picked.
   - platform: template
-    name: "Face Color Preset"
-    id: face_preset_sel
-    options: [Blue, Green, Pink, Orange, Purple, Red, Yellow, White, Custom]
-    initial_option: Blue
+    name: "Theme"
+    id: theme_sel
+    options: [Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint, Custom]   # same order as cgotchi::face::THEMES
+    initial_option: Classic
     optimistic: true
     restore_value: true
     on_value:
       - lambda: |-
-          // Custom keeps whatever the Face Color picker holds.
-          for (const auto &p : cgotchi::face::FACE_PRESETS) {
-            if (x == p.name) {
-              auto call = id(face_color).turn_on();
-              call.set_rgb(p.r, p.g, p.b);
-              call.set_transition_length(0);
-              call.perform();
-            }
+          for (const auto &t : cgotchi::face::THEMES) {
+            if (x != t.name) continue;
+            if (cgotchi::face::theme_is(t, id(bg_color), id(accent_color), id(secondary_color))) return;
+            cgotchi::face::set_light_color(id(bg_color), t.bg);
+            cgotchi::face::set_light_color(id(accent_color), t.accent);
+            cgotchi::face::set_light_color(id(secondary_color), t.secondary);
           }
+      - component.update: lcd
   - platform: template
     name: "Face Expression"
     id: face_sel
@@ -729,6 +781,30 @@ output:
     id: face_b
     type: float
     write_action: []
+  - platform: template
+    id: secondary_r
+    type: float
+    write_action: []
+  - platform: template
+    id: secondary_g
+    type: float
+    write_action: []
+  - platform: template
+    id: secondary_b
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_r
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_g
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_b
+    type: float
+    write_action: []
 
 light:
   - platform: monochromatic
@@ -738,10 +814,13 @@ light:
     restore_mode: RESTORE_DEFAULT_ON
     default_transition_length: 0s   # no fade, snappy dimming
 
-  # Face color picker. The outputs are dummies: the light only stores the color the display reads.
+  # Accent color picker. The three color lights below (accent, secondary, background) have dummy
+  # outputs: a light only stores the color the display reads. The Theme select sets all three. The
+  # on/off switch does nothing (except for the background, where off is black) and the brightness
+  # slider scales the color.
   - platform: rgb
-    name: "Face Color"
-    id: face_color
+    name: "Accent Color"
+    id: accent_color
     red: face_r
     green: face_g
     blue: face_b
@@ -753,22 +832,45 @@ light:
       green: 78%
       blue: 100%
     on_state:
-      - lambda: |-
-          // Mirror the picker into the preset select: a matching preset, else Custom.
-          const auto &v = id(face_color).remote_values;
-          const char *match = "Custom";
-          size_t match_idx = sizeof(cgotchi::face::FACE_PRESETS) / sizeof(cgotchi::face::FACE_PRESETS[0]);   // Custom is the last option
-          for (size_t i = 0; i < match_idx; i++) {
-            const auto &p = cgotchi::face::FACE_PRESETS[i];
-            if (fabsf(v.get_red() - p.r) < 0.02f && fabsf(v.get_green() - p.g) < 0.02f &&
-                fabsf(v.get_blue() - p.b) < 0.02f) {
-              match = p.name;
-              match_idx = i;
-              break;
-            }
-          }
-          if (id(face_preset_sel).active_index().value_or(match_idx + 1) != match_idx)
-            id(face_preset_sel).make_call().set_option(match).perform();
+      - script.execute: sync_theme
+      - component.update: lcd
+
+  # Secondary color picker: supporting text (message body, clock date, dividers).
+  - platform: rgb
+    name: "Secondary Color"
+    id: secondary_color
+    red: secondary_r
+    green: secondary_g
+    blue: secondary_b
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 50%
+      green: 90%
+      blue: 100%
+    on_state:
+      - script.execute: sync_theme
+      - component.update: lcd
+
+  # Background color picker. Off is black; turning it on gives a dark navy to start from. The text
+  # colors switch between light and dark to match.
+  - platform: rgb
+    name: "Background Color"
+    id: bg_color
+    red: bg_r
+    green: bg_g
+    blue: bg_b
+    restore_mode: RESTORE_DEFAULT_OFF
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 0%
+      green: 25%
+      blue: 100%
+      brightness: 16%
+    on_state:
+      - script.execute: sync_theme
       - component.update: lcd
 
 switch:

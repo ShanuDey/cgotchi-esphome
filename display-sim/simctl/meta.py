@@ -20,18 +20,31 @@ class Color:
     name: str
     rgb: tuple[int, int, int]
 
+    @property
+    def hex(self) -> str:
+        return "#{:02x}{:02x}{:02x}".format(*self.rgb)
+
+
+@dataclass(frozen=True)
+class Theme:
+    name: str
+    bg: tuple[int, int, int]
+    accent: tuple[int, int, int]
+
 
 @dataclass(frozen=True)
 class Meta:
     expressions: list[str]
     voices: list[str]
     colors: list[Color]
+    themes: list[Theme]
 
     def to_json(self) -> dict:
         return {
             "expressions": self.expressions,
             "voices": self.voices,
             "colors": [{"name": c.name, "rgb": c.rgb} for c in self.colors],
+            "themes": [{"name": t.name, "bg": t.bg, "accent": t.accent} for t in self.themes],
             "fps": {"min": FPS_MIN, "max": FPS_MAX, "step": FPS_STEP, "default": FPS_DEFAULT},
         }
 
@@ -53,6 +66,17 @@ def _parse_colors(text: str) -> list[Color]:
     return colors
 
 
+def _parse_themes(text: str) -> list[Theme]:
+    # {"Name", {r, g, b}, {r, g, b}, {r, g, b}}: background, accent, secondary
+    triple = r"\{\s*(" + NUMBER + r")f,\s*(" + NUMBER + r")f,\s*(" + NUMBER + r")f\s*\}"
+    pattern = r'\{"([\w ]+)",\s*' + triple + r",\s*" + triple + r",\s*" + triple + r"\}"
+
+    def rgb(*parts: str) -> tuple[int, int, int]:
+        return tuple(round(float(p) * 255) for p in parts)  # type: ignore[return-value]
+
+    return [Theme(m[0], rgb(*m[1:4]), rgb(*m[4:7])) for m in re.findall(pattern, text)]
+
+
 @lru_cache
 def load_meta() -> Meta:
     looks = (FACE_DIR / "looks.h").read_text(encoding="utf-8")
@@ -60,4 +84,5 @@ def load_meta() -> Meta:
         expressions=_parse_enum(looks, "Expression"),
         voices=_parse_enum(looks, "Voice"),
         colors=_parse_colors((FACE_DIR / "colors.h").read_text(encoding="utf-8")),
+        themes=_parse_themes((FACE_DIR / "colors.h").read_text(encoding="utf-8")),
     )

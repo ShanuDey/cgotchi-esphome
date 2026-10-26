@@ -6,7 +6,7 @@ so the same C++ that runs on the board draws what you see. Use it to tune faces 
 animation before flashing.
 
 It stands in for Home Assistant: the control page sets the same entities HA sets on the
-device (expression, voice state, speaking, color, frame rate). Only the face is simulated: not
+device (expression, voice state, speaking, accent and background color, frame rate). Only the face is simulated: not
 the other pages, audio, touch, Wi-Fi or the real HA connection.
 
 ## One-time setup (Windows 11)
@@ -84,7 +84,7 @@ Click the window first so it has focus.
 | Left / Right | previous / next expression |
 | V | next voice state (Idle, Listening, Thinking, Replying, Error) |
 | S | toggle speaking |
-| C | next color preset |
+| C | next accent color preset |
 | Up / Down | frame rate +5 / -5 fps |
 
 Keys change the running simulator only, not `settings.txt`, so the next edit of the file or
@@ -93,7 +93,7 @@ the page puts everything back to what it says.
 ## What the page expects from the face headers
 
 `simctl/meta.py` reads the expression and voice names from the enums in
-`components/face/looks.h`, and the color presets from `colors.h`, with simple patterns. Keep
+`components/face/looks.h`, and the accent swatches from `colors.h`, with simple patterns. Keep
 their existing style. If it drifts, the page stops at startup with a message saying what it
 could not find. A new expression or color shows up on the page after a restart.
 

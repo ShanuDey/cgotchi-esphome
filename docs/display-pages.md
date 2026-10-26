@@ -1,4 +1,4 @@
-# Display pages and settings
+﻿# Display pages and settings
 
 The display has five pages. Change page with a long press of Volume Down or the
 **Display Page** select in HA. The select is not restored on boot, so a reboot
@@ -18,8 +18,31 @@ is selected (the **Display Page** select does not change).
 ## Face
 
 **Face Expression** (Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused,
-Love, Wink) and **Face Color** (a color picker for the face only) with **Face
-Color Preset** (Blue, Green, Pink, Orange, Purple, Red, Yellow, White, or Custom).
+Love, Wink).
+
+## Theme colors
+
+Three color lights theme the Face, Clock and Message pages. The Display Frame and
+WebView pages draw their own content and are not themed.
+
+The **Theme** select sets all three lights at once: Classic (default), Midnight,
+Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper and Mint. Paper and Mint are light
+themes. It shows **Custom** when the three lights match no theme (picking Custom does
+nothing), so you can start from a theme and then adjust one light. The themes live in
+[colors.h](../components/face/colors.h); keep their names in sync with the select options
+in `cgotchi.yaml`, in the same order.
+
+Each light also has a color picker, and its brightness slider scales the color. The
+on/off switch does nothing, except for the background, where off is black.
+
+| Entity | Used for |
+|---|---|
+| **Accent Color** | The headline color: the face, clock digits, message title, volume and update bars. Default blue. |
+| **Secondary Color** | Supporting text: message body, clock date, dividers and the volume border. Default light cyan. |
+| **Background Color** | The page background, dark or light. Off is black, and that is the default. The text and hint colors switch between white and black to match, and an accent or secondary too close to the background is pushed lighter or darker so it stays readable. |
+
+Status colors stay fixed on every page: the green mic dot, red errors and gray hints.
+A very dark accent or secondary is brightened so it stays visible on the background.
 
 The face is drawn by the header-only `face` component, split by concern:
 
@@ -28,7 +51,7 @@ The face is drawn by the header-only `face` component, split by concern:
 | [looks.h](../components/face/looks.h) | The `Shape` model (eye size, lids, gaze, mouth) and one function per expression. |
 | [draw.h](../components/face/draw.h) | Draws one frame from a `Shape`. No state, no timing. |
 | [face.h](../components/face/face.h) | Eases between expressions, blinks, glances around, reacts to voice and audio. |
-| [colors.h](../components/face/colors.h) | The color presets. |
+| [colors.h](../components/face/colors.h) | The themes, plus accent presets for the display simulator. |
 
 Between expressions the face morphs rather than snapping. While nothing moves, it
 redraws only for the occasional blink or glance, which keeps battery use low.
@@ -40,8 +63,7 @@ it runs this same component on your PC with a control page and a slider for ever
 
 To add an expression: write a function in `looks.h`, add it to the `Expression`
 enum and to `looks()`, and add its name to the **Face Expression** select in
-`cgotchi.yaml` in the same order. Keep the color preset names in `colors.h` in
-sync with the **Face Color Preset** select the same way.
+`cgotchi.yaml` in the same order. 
 
 ## Clock
 
@@ -67,7 +89,7 @@ fit. Content in the middle of each edge stays visible.
 
 ## Saved settings
 
-**Clock Format**, **Face Expression**, **Face Color Preset**, **Message Title/Body**
+**Clock Format**, **Face Expression**, **Theme**, the three theme color lights, **Message Title/Body**
 and **Display Frame URL** use `restore_value: true`, so they live in flash and
 survive power-off, reboots and OTA. Renaming one or changing its options in
 the YAML resets it to the default once; a full flash erase clears them all.

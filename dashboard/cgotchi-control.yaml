@@ -116,27 +116,39 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Face
-            subtitle: Expression and color
+            subtitle: Expression and theme
             card_mod:
               style: "ha-card{padding:4px 8px 0;}"
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:mushroom-select-card
-                entity: select.cgotchi_face_expression
-                name: Expression
-                icon: mdi:emoticon-outline
-                fill_container: true
-              - type: custom:mushroom-select-card
-                entity: select.cgotchi_face_color_preset
-                name: Color preset
-                icon: mdi:palette
-                fill_container: true
+          - type: custom:mushroom-select-card
+            entity: select.cgotchi_face_expression
+            name: Expression
+            icon: mdi:emoticon-outline
+            fill_container: true
+          - type: custom:mushroom-select-card
+            entity: select.cgotchi_theme
+            name: Theme
+            icon: mdi:palette
+            fill_container: true
           - type: custom:mushroom-light-card
-            entity: light.cgotchi_face_color
-            name: Face color
-            show_brightness_control: false
+            entity: light.cgotchi_accent_color
+            name: Accent color
+            show_brightness_control: true
+            show_color_control: true
+            use_light_color: true
+            collapsible_controls: false
+            fill_container: true
+          - type: custom:mushroom-light-card
+            entity: light.cgotchi_secondary_color
+            name: Secondary color
+            show_brightness_control: true
+            show_color_control: true
+            use_light_color: true
+            collapsible_controls: false
+            fill_container: true
+          - type: custom:mushroom-light-card
+            entity: light.cgotchi_background_color
+            name: Background color
+            show_brightness_control: true
             show_color_control: true
             use_light_color: true
             collapsible_controls: false

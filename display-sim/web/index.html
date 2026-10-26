@@ -31,8 +31,18 @@
 
     <section class="card">
       <h2>Look</h2>
-      <h3>Color</h3>
-      <div id="colors" class="swatches" role="group" aria-label="Color"></div>
+      <h3>Theme</h3>
+      <div id="themes" class="chips" role="group" aria-label="Theme"></div>
+      <h3>Accent color</h3>
+      <div class="swatches">
+        <div id="colors" class="swatches" role="group" aria-label="Accent presets"></div>
+        <input type="color" id="accent" aria-label="Accent color">
+      </div>
+      <h3>Background color</h3>
+      <div class="swatches">
+        <input type="color" id="background" aria-label="Background color">
+        <span class="hint">Text and face colors adjust to stay readable, like the device.</span>
+      </div>
       <h3>Frame rate <output id="fps-value"></output></h3>
       <input type="range" id="fps" aria-label="Frame rate">
     </section>

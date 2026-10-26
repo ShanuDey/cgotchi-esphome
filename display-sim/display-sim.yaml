@@ -26,7 +26,17 @@ display:
     update_interval: never
     auto_clear_enabled: false
     lambda: |-
-      const Color BG(0, 0, 0), DIM(130, 130, 130);
+      // Background and theme: the same rules as the device (see cgotchi.yaml). A light's RGB is always
+      // full strength, so the brightness carries the darkness, and off is black. Hint text and the
+      // accent follow the background so they stay readable.
+      const auto &bc = id(bg_color).remote_values;
+      const float bk = bc.is_on() ? bc.get_brightness() * bc.get_color_brightness() : 0.0f;
+      const float bgr = bc.get_red() * bk, bgg = bc.get_green() * bk, bgb = bc.get_blue() * bk;
+      const Color BG((uint8_t) (bgr * 255), (uint8_t) (bgg * 255), (uint8_t) (bgb * 255));
+      auto lum = [](float r, float g, float b) { return 0.2126f * r + 0.7152f * g + 0.0722f * b; };
+      const float bl = lum(bgr, bgg, bgb);
+      const bool light_bg = bl > 0.5f;
+      const Color DIM = light_bg ? Color(110, 110, 110) : Color(130, 130, 130);
       const uint32_t up = millis();
       const bool booting = up < 2600;
       const int expr = booting ? 0 : id(face_sel).active_index().value_or(0);
@@ -34,8 +44,19 @@ display:
       const bool speaking = !booting && id(speaking_sw).state;
       auto &face = cgotchi::face::instance();
 
-      const auto &fc = id(face_color).remote_values;
-      const Color FACE((uint8_t) (fc.get_red() * 255), (uint8_t) (fc.get_green() * 255), (uint8_t) (fc.get_blue() * 255));
+      const auto &fc = id(accent_color).remote_values;
+      const float fk = fc.get_brightness() * fc.get_color_brightness();
+      float fr = fc.get_red() * fk, fg = fc.get_green() * fk, fb = fc.get_blue() * fk;
+      const float fl = lum(fr, fg, fb);
+      if (light_bg) {
+        const float maxl = bl - 0.5f;
+        if (fl > maxl) { const float f = fl > 0.0f ? maxl / fl : 0.0f; fr *= f; fg *= f; fb *= f; }
+      } else {
+        const float minl = bl + 0.3f;
+        if (fl <= 0.0f) { fr = fg = fb = minl; }
+        else if (fl < minl) { const float f = minl / fl; fr = fminf(fr * f, 1.0f); fg = fminf(fg * f, 1.0f); fb = fminf(fb * f, 1.0f); }
+      }
+      const Color FACE((uint8_t) (fr * 255), (uint8_t) (fg * 255), (uint8_t) (fb * 255));
       it.fill(BG);
       face.visible = true;
       face.update({(cgotchi::face::Expression) expr, (cgotchi::face::Voice) va, speaking, booting}, up);
@@ -72,8 +93,8 @@ select:
     on_value:
       - component.update: lcd
   - platform: template
-    name: "Face Color Preset"
-    id: face_preset_sel
+    name: "Accent Color Preset"
+    id: accent_preset_sel
     options: [Blue, Green, Pink, Orange, Purple, Red, Yellow, White]   # same order as cgotchi::face::FACE_PRESETS
     initial_option: Blue
     optimistic: true
@@ -81,7 +102,7 @@ select:
       - lambda: |-
           for (const auto &p : cgotchi::face::FACE_PRESETS) {
             if (x == p.name) {
-              auto call = id(face_color).turn_on();
+              auto call = id(accent_color).turn_on();
               call.set_rgb(p.r, p.g, p.b);
               call.set_transition_length(0);
               call.perform();
@@ -123,11 +144,23 @@ output:
     id: face_b
     type: float
     write_action: []
+  - platform: template
+    id: bg_r
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_g
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_b
+    type: float
+    write_action: []
 
 light:
   - platform: rgb
-    name: "Face Color"
-    id: face_color
+    name: "Accent Color"
+    id: accent_color
     red: face_r
     green: face_g
     blue: face_b
@@ -138,6 +171,21 @@ light:
       red: 0%
       green: 78%
       blue: 100%
+    on_state:
+      - component.update: lcd
+  - platform: rgb
+    name: "Background Color"
+    id: bg_color
+    red: bg_r
+    green: bg_g
+    blue: bg_b
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 0%
+      green: 0%
+      blue: 0%
     on_state:
       - component.update: lcd
 
@@ -180,24 +228,54 @@ interval:
             ESP_LOGW("settings", "'%s' is not an option of %s", value.c_str(), sel->get_name().c_str());
           };
 
+          // "#rrggbb" sets a color light directly (like picking a color in HA).
+          auto set_color = [&](light::LightState *l, const std::string &value) {
+            if (value.size() != 7 || value[0] != '#' || value.find_first_not_of("0123456789abcdefABCDEF", 1) != std::string::npos) {
+              ESP_LOGW("settings", "'%s' is not a color like #00c7ff", value.c_str());
+              return;
+            }
+            // Like HA: the strongest channel becomes 100% and the brightness holds the rest; black is off.
+            const long rgb = strtol(value.c_str() + 1, nullptr, 16);
+            const float r = ((rgb >> 16) & 0xFF) / 255.0f, g = ((rgb >> 8) & 0xFF) / 255.0f, b = (rgb & 0xFF) / 255.0f;
+            const float m = fmaxf(r, fmaxf(g, b));
+            if (m == 0.0f) {
+              auto off = l->turn_off();
+              off.set_transition_length(0);
+              off.perform();
+              return;
+            }
+            auto call = l->turn_on();
+            call.set_rgb(r / m, g / m, b / m);
+            call.set_brightness(m);
+            call.set_transition_length(0);
+            call.perform();
+          };
+
           size_t start = 0;
           while (start <= text.size()) {
             size_t end = text.find('\n', start);
             if (end == std::string::npos) end = text.size();
             std::string line = text.substr(start, end - start);
             start = end + 1;
-            line = trim(line.substr(0, line.find('#')));
-            if (line.empty()) continue;
+            line = trim(line);
+            if (line.empty() || line[0] == '#') continue;
             const size_t eq = line.find('=');
             if (eq == std::string::npos) {
               ESP_LOGW("settings", "ignored line without '=': %s", line.c_str());
               continue;
             }
-            const std::string key = lower(trim(line.substr(0, eq))), value = trim(line.substr(eq + 1));
+            const std::string key = lower(trim(line.substr(0, eq)));
+            std::string value = trim(line.substr(eq + 1));
+            // A comment starts at "#" after a space or tab. A value may itself start with "#" (a color).
+            for (size_t i = 1; i < value.size(); i++) {
+              if (value[i] == '#' && (value[i - 1] == ' ' || value[i - 1] == '\t')) { value.erase(i); break; }
+            }
+            value = trim(value);
             ESP_LOGI("settings", "%s = %s", key.c_str(), value.c_str());
             if (key == "expression") pick(id(face_sel), value);
             else if (key == "voice") pick(id(voice_sel), value);
-            else if (key == "color") pick(id(face_preset_sel), value);
+            else if (key == "accent") set_color(id(accent_color), value);
+            else if (key == "background") set_color(id(bg_color), value);
             else if (key == "speaking") {
               const std::string v = lower(value);
               if (v == "on" || v == "true" || v == "1") id(speaking_sw).turn_on();
@@ -253,7 +331,7 @@ binary_sensor:
     id: key_color
     key: SDLK_c
     on_press:
-      - select.next: {id: face_preset_sel, cycle: true}
+      - select.next: {id: accent_preset_sel, cycle: true}
   - platform: sdl
     id: key_fps_up
     key: SDLK_UP
