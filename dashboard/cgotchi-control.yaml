@@ -1,6 +1,6 @@
 # cgotchi control dashboard for Home Assistant. Paste into a dashboard's raw configuration editor.
-# Needs Mushroom, layout-card and card-mod (HACS). Entity IDs use the cgotchi_ prefix: if your
-# device or area name differs (e.g. <area>_cheeko_), find and replace "cgotchi_" with yours.
+# Needs Mushroom, layout-card and card-mod (HACS). Entity IDs use the cgotchi_ prefix, which
+# the device name "cgotchi" gives. If yours differ, find and replace "cgotchi_" with your prefix.
 # See ../docs/dashboard.md.
 title: cgotchi control
 views:
@@ -18,11 +18,6 @@ views:
           grid-column: 1 / -1
         type: vertical-stack
         cards:
-          - type: custom:mushroom-title-card
-            title: Cgotchi
-            subtitle: Display, voice and audio
-            card_mod:
-              style: ".title,.subtitle{text-align:center;}"
           - type: custom:mushroom-chips-card
             alignment: center
             chips:
@@ -50,7 +45,7 @@ views:
                 content: "{{ states(entity) }}"
               - type: template
                 entity: select.cgotchi_face_expression
-                icon: "{{ {'Happy':'mdi:emoticon-happy-outline','Sad':'mdi:emoticon-sad-outline','Sleepy':'mdi:sleep','Surprised':'mdi:emoticon-excited-outline','Angry':'mdi:emoticon-angry-outline','Laughing':'mdi:emoticon-lol-outline','Confused':'mdi:emoticon-confused-outline','Love':'mdi:emoticon-kiss-outline','Wink':'mdi:emoticon-wink-outline'}.get(states(entity),'mdi:emoticon-outline') }}"
+                icon: "{{ {'Happy':'mdi:emoticon-happy-outline','Sad':'mdi:emoticon-sad-outline','Sleepy':'mdi:sleep','Surprised':'mdi:emoticon-excited-outline','Angry':'mdi:emoticon-angry-outline','Laughing':'mdi:emoticon-lol-outline','Confused':'mdi:emoticon-confused-outline','Love':'mdi:emoticon-kiss-outline','Wink':'mdi:emoticon-wink-outline','Dizzy':'mdi:emoticon-dead-outline','Celebrating':'mdi:party-popper','Worried':'mdi:emoticon-cry-outline','Bored':'mdi:emoticon-neutral-outline'}.get(states(entity),'mdi:emoticon-outline') }}"
                 icon_color: pink
                 content: "{{ states(entity) }}"
               - type: template
@@ -124,6 +119,12 @@ views:
             name: Expression
             icon: mdi:emoticon-outline
             fill_container: true
+          - type: custom:mushroom-number-card
+            entity: number.cgotchi_face_frame_rate
+            name: Frame rate
+            icon: mdi:speedometer
+            display_mode: slider
+            fill_container: true
           - type: custom:mushroom-select-card
             entity: select.cgotchi_theme
             name: Theme
@@ -152,6 +153,58 @@ views:
             show_color_control: true
             use_light_color: true
             collapsible_controls: false
+            fill_container: true
+
+      # ---------------------------------------------------------------- motion
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Motion and touch
+            subtitle: Accelerometer and face touch
+            card_mod:
+              style: "ha-card{padding:4px 8px 0;}"
+          - type: custom:mushroom-template-card
+            entity: switch.cgotchi_motion_reactions
+            primary: Motion reactions
+            secondary: "{{ 'Face reacts' if is_state(entity,'on') else 'Off' }}"
+            icon: mdi:vibrate
+            icon_color: "{{ 'green' if is_state(entity,'on') else 'grey' }}"
+            layout: horizontal
+            tap_action:
+              action: toggle
+            fill_container: true
+          - type: custom:mushroom-chips-card
+            alignment: center
+            chips:
+              - type: template
+                entity: binary_sensor.cgotchi_moving
+                icon: mdi:rotate-3d-variant
+                icon_color: "{{ 'orange' if is_state(entity,'on') else 'grey' }}"
+                content: "{{ 'Moving' if is_state(entity,'on') else 'Still' }}"
+              - type: template
+                entity: binary_sensor.cgotchi_face_up
+                icon: mdi:arrow-up-bold-box-outline
+                icon_color: "{{ 'blue' if is_state(entity,'on') else 'grey' }}"
+                content: Face up
+              - type: template
+                entity: binary_sensor.cgotchi_face_down
+                icon: mdi:arrow-down-bold-box-outline
+                icon_color: "{{ 'blue' if is_state(entity,'on') else 'grey' }}"
+                content: Face down
+          - type: custom:mushroom-entity-card
+            entity: event.cgotchi_shake
+            name: Shake
+            icon: mdi:vibrate
+            primary_info: name
+            secondary_info: last-changed
+            layout: horizontal
+            fill_container: true
+          - type: custom:mushroom-template-card
+            entity: event.cgotchi_face_touch
+            primary: Face touch
+            secondary: "{{ state_attr(entity,'event_type') or '-' }}"
+            icon: mdi:gesture-tap
+            layout: horizontal
             fill_container: true
 
       # ------------------------------------------------------ voice assistant
