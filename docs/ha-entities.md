@@ -20,7 +20,7 @@ What the device page in HA shows.
 | Motion Reactions | switch | Face reacts to shake, movement and face-down. |
 | Face Touch | event | `tap`, `long_press` or `pet` (dragging) on the Face page. |
 | Face Frame Rate | number | Highest face animation rate, 5 to 25 fps (default 20). Lower saves battery. Kept across reboots. |
-| Theme | select | Sets the three color lights together (Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint), or Custom. |
+| Theme | select | Sets the three color lights together (Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint, Night), or Custom. |
 | Accent Color | light | Headline color of the Face, Clock and Message pages. |
 | Secondary Color | light | Supporting text (message body, clock date). |
 | Background Color | light | Page background, dark or light. Off is black. |

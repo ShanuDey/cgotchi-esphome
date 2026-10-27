@@ -1,7 +1,7 @@
 #pragma once
 // The screen colors, worked out from the three theme lights. The text (fg) and hint (dim) colors
 // follow the background (light on dark, dark on light). An accent or secondary too close to the
-// background is pushed away from it so it never vanishes.
+// background is pushed away from it so it never vanishes. Dim themes get dimmer text.
 
 #include <math.h>
 
@@ -34,7 +34,7 @@ inline void fit_to_background(float &r, float &g, float &b, float bl, bool light
       b *= f;
     }
   } else {
-    const float minl = bl + 0.3f;
+    const float minl = bl + 0.15f;
     if (l <= 0.0f) {
       r = g = b = minl;
     } else if (l < minl) {
@@ -60,9 +60,15 @@ inline Palette make_palette(L *bg_light, L *accent_light, L *secondary_light) {
   fit_to_background(ar, ag, ab, bl, light_bg);
   fit_to_background(sr, sg, sb, bl, light_bg);
 
-  return {to_color(br, bgn, bb),
-          light_bg ? esphome::Color(0, 0, 0) : esphome::Color(255, 255, 255),
-          light_bg ? esphome::Color(110, 110, 110) : esphome::Color(130, 130, 130),
+  // On a dark background, dim the text when the theme colors are dim (night themes).
+  uint8_t fg_v = 0, dim_v = 110;
+  if (!light_bg) {
+    const float k = fminf(1.0f, fmaxf(0.5f, fmaxf(luminance(ar, ag, ab), luminance(sr, sg, sb)) / 0.5f));
+    fg_v = (uint8_t) (255 * k);
+    dim_v = (uint8_t) (130 * k);
+  }
+
+  return {to_color(br, bgn, bb), esphome::Color(fg_v, fg_v, fg_v), esphome::Color(dim_v, dim_v, dim_v),
           to_color(ar, ag, ab),
           to_color(sr, sg, sb),
           light_bg};

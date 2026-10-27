@@ -230,7 +230,7 @@ select:
   - platform: template
     name: "Theme"
     id: theme_sel
-    options: [Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint, Custom]   # same order as cgotchi::ui::THEMES
+    options: [Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint, Night, Custom]   # same order as cgotchi::ui::THEMES
     initial_option: Classic
     optimistic: true
     restore_value: true

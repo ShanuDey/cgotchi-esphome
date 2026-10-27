@@ -40,11 +40,11 @@ Three color lights theme the Face, Clock and Message pages. The Display Frame an
 WebView pages draw their own content and are not themed.
 
 The **Theme** select sets all three lights at once: Classic (default), Midnight,
-Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper and Mint. Paper and Mint are light
-themes. It shows **Custom** when the three lights match no theme (picking Custom does
+Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint and Night. Paper and Mint are
+light themes. Night is a dim red and amber theme with soft grey text for dark rooms. It shows **Custom** when the three lights match no theme (picking Custom does
 nothing), so you can start from a theme and then adjust one light. The themes live in
 [themes.h](../components/display_ui/themes.h); keep their names in sync with the select options
-in `cgotchi.yaml`, in the same order.
+in `packages/display.yaml`, in the same order.
 
 Each light also has a color picker, and its brightness slider scales the color. The
 on/off switch does nothing, except for the background, where off is black.

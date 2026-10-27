@@ -1,5 +1,5 @@
 #pragma once
-// The themes of the Theme select in cgotchi.yaml. Keep names and order in sync with its options.
+// The themes of the Theme select in packages/display.yaml. Keep names and order in sync with its options.
 #include <cmath>
 
 namespace cgotchi {
@@ -12,16 +12,17 @@ struct Theme {
 };
 
 static const Theme THEMES[] = {
-    {"Classic", {0.0f, 0.0f, 0.0f}, {0.0f, 0.78f, 1.0f}, {0.5f, 0.9f, 1.0f}},
-    {"Midnight", {0.02f, 0.02f, 0.07f}, {0.0f, 0.9f, 1.0f}, {0.65f, 0.8f, 1.0f}},
-    {"Bubblegum", {0.16f, 0.04f, 0.12f}, {1.0f, 0.4f, 0.7f}, {1.0f, 0.78f, 0.88f}},
-    {"Forest", {0.02f, 0.1f, 0.04f}, {0.55f, 1.0f, 0.25f}, {0.75f, 0.95f, 0.8f}},
-    {"Sunset", {0.04f, 0.05f, 0.14f}, {1.0f, 0.55f, 0.0f}, {1.0f, 0.85f, 0.4f}},
-    {"Grape", {0.09f, 0.03f, 0.16f}, {0.7f, 0.4f, 1.0f}, {0.85f, 0.75f, 1.0f}},
-    {"Ocean", {0.0f, 0.09f, 0.11f}, {0.0f, 0.9f, 0.85f}, {0.7f, 0.95f, 0.95f}},
-    {"Lava", {0.05f, 0.01f, 0.01f}, {1.0f, 0.2f, 0.15f}, {1.0f, 0.6f, 0.2f}},
-    {"Paper", {0.96f, 0.95f, 0.9f}, {0.1f, 0.25f, 0.65f}, {0.35f, 0.4f, 0.5f}},
-    {"Mint", {0.88f, 0.97f, 0.92f}, {0.0f, 0.5f, 0.45f}, {0.3f, 0.45f, 0.4f}},
+    {"Classic", {0.0f, 0.0f, 0.0f}, {0.0f, 0.78f, 1.0f}, {1.0f, 0.85f, 0.3f}},
+    {"Midnight", {0.02f, 0.02f, 0.07f}, {0.0f, 0.9f, 1.0f}, {0.7f, 0.5f, 1.0f}},
+    {"Bubblegum", {0.16f, 0.04f, 0.12f}, {1.0f, 0.4f, 0.7f}, {0.5f, 0.95f, 0.85f}},
+    {"Forest", {0.02f, 0.1f, 0.04f}, {0.55f, 1.0f, 0.25f}, {1.0f, 0.8f, 0.4f}},
+    {"Sunset", {0.04f, 0.05f, 0.14f}, {1.0f, 0.55f, 0.0f}, {1.0f, 0.4f, 0.6f}},
+    {"Grape", {0.09f, 0.03f, 0.16f}, {0.7f, 0.4f, 1.0f}, {1.0f, 0.85f, 0.4f}},
+    {"Ocean", {0.0f, 0.09f, 0.11f}, {0.0f, 0.9f, 0.85f}, {1.0f, 0.55f, 0.45f}},
+    {"Lava", {0.05f, 0.01f, 0.01f}, {1.0f, 0.2f, 0.15f}, {1.0f, 0.85f, 0.2f}},
+    {"Paper", {0.96f, 0.95f, 0.9f}, {0.1f, 0.25f, 0.65f}, {0.75f, 0.3f, 0.15f}},
+    {"Mint", {0.88f, 0.97f, 0.92f}, {0.0f, 0.5f, 0.45f}, {0.75f, 0.3f, 0.4f}},
+    {"Night", {0.0f, 0.0f, 0.0f}, {0.6f, 0.3f, 0.0f}, {0.45f, 0.04f, 0.04f}},
 };
 static const int THEME_COUNT = sizeof(THEMES) / sizeof(THEMES[0]);
 
