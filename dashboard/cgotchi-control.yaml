@@ -1,5 +1,5 @@
 # cgotchi control dashboard for Home Assistant. Paste into a dashboard's raw configuration editor.
-# Needs Mushroom, layout-card and card-mod (HACS). Entity IDs use the cgotchi_ prefix, which
+# Needs Mushroom and card-mod (HACS). Entity IDs use the cgotchi_ prefix, which
 # the device name "cgotchi" gives. If yours differ, find and replace "cgotchi_" with your prefix.
 # See ../docs/dashboard.md.
 title: cgotchi control
@@ -7,53 +7,8 @@ views:
   - title: cgotchi control
     path: control
     icon: mdi:robot-happy
-    type: custom:grid-layout
-    layout:
-      grid-template-columns: repeat(auto-fit, minmax(max(340px, 24%), 1fr))
-      grid-gap: 14px
-      margin: 12px
+    type: masonry
     cards:
-      # ---------------------------------------------------------------- header
-      - view_layout:
-          grid-column: 1 / -1
-        type: vertical-stack
-        cards:
-          - type: custom:mushroom-chips-card
-            alignment: center
-            chips:
-              - type: template
-                entity: assist_satellite.cgotchi_assist_satellite
-                icon: mdi:microphone-message
-                icon_color: "{{ 'blue' if is_state(entity,'idle') else 'orange' }}"
-                content: "{{ states(entity) | title }}"
-              - type: template
-                entity: switch.cgotchi_wake_word_mode
-                icon: mdi:ear-hearing
-                icon_color: "{{ 'green' if is_state(entity,'on') else 'grey' }}"
-                content: "Wake word {{ 'on' if is_state(entity,'on') else 'off' }}"
-                tap_action:
-                  action: toggle
-              - type: template
-                entity: media_player.cgotchi_speaker
-                icon: mdi:volume-high
-                icon_color: indigo
-                content: "{{ (state_attr(entity,'volume_level')*100) | round(0) if state_attr(entity,'volume_level') is not none else '-' }}%"
-              - type: template
-                entity: select.cgotchi_display_page
-                icon: mdi:monitor-dashboard
-                icon_color: cyan
-                content: "{{ states(entity) }}"
-              - type: template
-                entity: select.cgotchi_face_expression
-                icon: "{{ {'Happy':'mdi:emoticon-happy-outline','Sad':'mdi:emoticon-sad-outline','Sleepy':'mdi:sleep','Surprised':'mdi:emoticon-excited-outline','Angry':'mdi:emoticon-angry-outline','Laughing':'mdi:emoticon-lol-outline','Confused':'mdi:emoticon-confused-outline','Love':'mdi:emoticon-kiss-outline','Wink':'mdi:emoticon-wink-outline','Dizzy':'mdi:emoticon-dead-outline','Celebrating':'mdi:party-popper','Worried':'mdi:emoticon-cry-outline','Bored':'mdi:emoticon-neutral-outline'}.get(states(entity),'mdi:emoticon-outline') }}"
-                icon_color: pink
-                content: "{{ states(entity) }}"
-              - type: template
-                entity: light.cgotchi_backlight
-                icon: mdi:brightness-6
-                icon_color: "{{ 'amber' if is_state(entity,'on') else 'grey' }}"
-                content: "{{ ((state_attr(entity,'brightness') or 0)/2.55) | round(0) }}%"
-
       # --------------------------------------------------------------- speaker
       - type: vertical-stack
         cards:
@@ -354,10 +309,45 @@ views:
 
       # ------------------------------------------------------------- mic level
       # The mic sensor only measures while the voice assistant is capturing, so this is mostly blank.
-      - view_layout:
-          grid-column: 1 / -1
-        type: history-graph
+      - type: history-graph
         title: Mic level
         hours_to_show: 6
         entities:
           - sensor.cgotchi_mic_level
+    # Status chips sit in the view's badge row above the cards.
+    badges:
+      - type: custom:mushroom-chips-card
+        alignment: center
+        chips:
+          - type: template
+            entity: assist_satellite.cgotchi_assist_satellite
+            icon: mdi:microphone-message
+            icon_color: "{{ 'blue' if is_state(entity,'idle') else 'orange' }}"
+            content: "{{ states(entity) | title }}"
+          - type: template
+            entity: switch.cgotchi_wake_word_mode
+            icon: mdi:ear-hearing
+            icon_color: "{{ 'green' if is_state(entity,'on') else 'grey' }}"
+            content: "Wake word {{ 'on' if is_state(entity,'on') else 'off' }}"
+            tap_action:
+              action: toggle
+          - type: template
+            entity: media_player.cgotchi_speaker
+            icon: mdi:volume-high
+            icon_color: indigo
+            content: "{{ (state_attr(entity,'volume_level')*100) | round(0) if state_attr(entity,'volume_level') is not none else '-' }}%"
+          - type: template
+            entity: select.cgotchi_display_page
+            icon: mdi:monitor-dashboard
+            icon_color: cyan
+            content: "{{ states(entity) }}"
+          - type: template
+            entity: select.cgotchi_face_expression
+            icon: "{{ {'Happy':'mdi:emoticon-happy-outline','Sad':'mdi:emoticon-sad-outline','Sleepy':'mdi:sleep','Surprised':'mdi:emoticon-excited-outline','Angry':'mdi:emoticon-angry-outline','Laughing':'mdi:emoticon-lol-outline','Confused':'mdi:emoticon-confused-outline','Love':'mdi:emoticon-kiss-outline','Wink':'mdi:emoticon-wink-outline','Dizzy':'mdi:emoticon-dead-outline','Celebrating':'mdi:party-popper','Worried':'mdi:emoticon-cry-outline','Bored':'mdi:emoticon-neutral-outline'}.get(states(entity),'mdi:emoticon-outline') }}"
+            icon_color: pink
+            content: "{{ states(entity) }}"
+          - type: template
+            entity: light.cgotchi_backlight
+            icon: mdi:brightness-6
+            icon_color: "{{ 'amber' if is_state(entity,'on') else 'grey' }}"
+            content: "{{ ((state_attr(entity,'brightness') or 0)/2.55) | round(0) }}%"

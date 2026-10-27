@@ -10,9 +10,8 @@ Frame addresses are entity values that stay in your own Home Assistant.
 
 ## Install
 
-1. In HACS, install these Frontend cards: **Mushroom** (piitaya/lovelace-mushroom),
-   **layout-card** (thomasloven/lovelace-layout-card) and **card-mod**
-   (thomasloven/lovelace-card-mod).
+1. In HACS, install these Frontend cards: **Mushroom** (piitaya/lovelace-mushroom)
+   and **card-mod** (thomasloven/lovelace-card-mod).
 2. **Settings > Dashboards > Add dashboard > New dashboard from scratch**.
    Name it, for example, "cgotchi control".
 3. Open it, then the three dots, **Edit dashboard**, three dots again,
