@@ -13,7 +13,12 @@ What the device page in HA shows.
 | WebView Current URL | text sensor | URL the WebView is on. |
 | WebView Flip X | switch | Debug mirror for the WebView page. |
 | Clock Format | select | 12 or 24 hour. |
-| Face Expression | select | Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink. |
+| Face Expression | select | Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Dizzy, Celebrating, Worried, Bored. |
+| Shake | event | The device was shaken. |
+| Moving | binary sensor | On while the device moves, off after 2 s of stillness. |
+| Face Up / Face Down | binary sensor | The device lies flat, screen up or down. |
+| Motion Reactions | switch | Face reacts to shake, movement and face-down. |
+| Face Touch | event | `tap`, `long_press` or `pet` (dragging) on the Face page. |
 | Face Frame Rate | number | Highest face animation rate, 5 to 25 fps (default 20). Lower saves battery. Kept across reboots. |
 | Theme | select | Sets the three color lights together (Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint), or Custom. |
 | Accent Color | light | Headline color of the Face, Clock and Message pages. |

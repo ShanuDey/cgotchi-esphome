@@ -1,0 +1,89 @@
+# Short face reactions on the Face page to touch (hardware.yaml) and motion (motion.yaml).
+# Uses: page_sel, lcd (display.yaml).
+
+globals:
+  - id: reaction_expr          # face::Expression shown until reaction_until
+    type: int
+    initial_value: "-1"
+  - id: reaction_until         # millis
+    type: uint32_t
+    initial_value: "0"
+  - id: touch_t0               # millis when the current touch began, 0 when not touching
+    type: uint32_t
+    initial_value: "0"
+  - id: touch_last             # millis of the latest touch update
+    type: uint32_t
+    initial_value: "0"
+  - id: touch_x0
+    type: int
+    initial_value: "0"
+  - id: touch_y0
+    type: int
+    initial_value: "0"
+  - id: touch_done             # the current touch was already reported as a gesture
+    type: bool
+    initial_value: "false"
+
+script:
+  - id: react
+    mode: restart
+    parameters:
+      expr: int
+      ms: int
+    then:
+      - if:
+          condition:
+            lambda: 'return id(page_sel).active_index().value_or(0) != 0;'
+          then:
+            - script.stop: react
+      - lambda: |-
+          id(reaction_expr) = expr;
+          id(reaction_until) = millis() + ms;
+      - component.update: lcd
+      - delay: !lambda 'return ms;'
+      - component.update: lcd
+
+  # Called for every touch update; a held or dragged finger becomes long_press or pet.
+  - id: touch_moved
+    parameters:
+      x: int
+      y: int
+    then:
+      - lambda: |-
+          if (id(page_sel).active_index().value_or(0) != 0) return;
+          const uint32_t now = millis();
+          if (id(touch_t0) != 0 && now - id(touch_last) > 500) id(touch_t0) = 0;   // a release was missed
+          id(touch_last) = now;
+          if (id(touch_t0) == 0) {
+            id(touch_t0) = now;
+            id(touch_x0) = x;
+            id(touch_y0) = y;
+            id(touch_done) = false;
+            return;
+          }
+          if (id(touch_done)) return;
+          const int dx = x - id(touch_x0), dy = y - id(touch_y0);
+          if (dx * dx + dy * dy > 40 * 40) {
+            id(touch_done) = true;
+            id(face_touch).trigger("pet");
+            id(react).execute((int) cgotchi::face::Expression::Love, 2500);
+          } else if (now - id(touch_t0) >= 700) {
+            id(touch_done) = true;
+            id(face_touch).trigger("long_press");
+            id(react).execute((int) cgotchi::face::Expression::Sleepy, 4000);
+          }
+
+  - id: touch_released
+    then:
+      - lambda: |-
+          const bool tap = id(touch_t0) != 0 && !id(touch_done);
+          id(touch_t0) = 0;
+          if (!tap || id(page_sel).active_index().value_or(0) != 0) return;
+          id(face_touch).trigger("tap");
+          id(react).execute((int) cgotchi::face::Expression::Love, 1500);
+
+event:
+  - platform: template
+    name: "Face Touch"
+    id: face_touch
+    event_types: [tap, long_press, pet]

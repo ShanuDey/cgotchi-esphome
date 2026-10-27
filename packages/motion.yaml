@@ -1,0 +1,56 @@
+# Accelerometer: shake, movement and orientation sensors, and the face reactions to them.
+# Uses: bus_a (hardware.yaml), react, reaction_until, touch_t0 (reactions.yaml), lcd (display.yaml).
+
+motion:
+  - platform: lis2dh12
+    id: accel
+    i2c_id: bus_a
+    update_interval: 50ms
+
+switch:
+  - platform: template
+    name: "Motion Reactions"
+    id: motion_reactions
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+event:
+  - platform: motion
+    motion_id: accel
+    name: "Shake"
+    on_event:
+      - if:
+          condition:
+            switch.is_on: motion_reactions
+          then:
+            - script.execute:
+                id: react
+                expr: !lambda 'return (int) cgotchi::face::Expression::Dizzy;'
+                ms: 2500
+
+binary_sensor:
+  - platform: motion
+    motion_id: accel
+    type: moving
+    name: "Moving"
+    threshold: 0.15            # taps and button presses on a desk stay below this
+    on_press:
+      - if:
+          condition:
+            lambda: 'return id(motion_reactions).state && id(touch_t0) == 0 && (int32_t) (id(reaction_until) - millis()) <= 0;'
+          then:
+            - script.execute:
+                id: react
+                expr: !lambda 'return (int) cgotchi::face::Expression::Surprised;'
+                ms: 1500
+  - platform: motion
+    motion_id: accel
+    type: face_up
+    name: "Face Up"
+  - platform: motion
+    motion_id: accel
+    type: face_down
+    name: "Face Down"
+    id: face_down
+    on_state:
+      - component.update: lcd

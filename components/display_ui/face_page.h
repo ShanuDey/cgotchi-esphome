@@ -11,8 +11,8 @@ namespace ui {
 inline void draw_face_page(Display &it, const Palette &p, const Fonts &f, const State &s) {
   auto &face = cgotchi::face::instance();
   face.visible = true;
-  face.update({(cgotchi::face::Expression) (s.booting() ? 0 : s.expression), (cgotchi::face::Voice) s.voice,
-               s.speaking(), s.booting()},
+  const int expression = s.booting() ? 0 : (s.reaction >= 0 ? s.reaction : s.expression);
+  face.update({(cgotchi::face::Expression) expression, (cgotchi::face::Voice) s.voice, s.speaking(), s.booting()},
               s.now_ms);
   face.draw(it, p.accent, p.bg, s.now_ms);
 

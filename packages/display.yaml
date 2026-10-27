@@ -1,5 +1,6 @@
 # The display and what it shows: panel, fonts, the display lambda (display_ui), pages, theme lights.
-# Uses: gotchi_player, mww, va_state (voice.yaml), rwv (webview.yaml), ota_state and ota_pct (ota: in cgotchi.yaml).
+# Uses: gotchi_player, mww, va_state (voice.yaml), rwv (webview.yaml), reaction_until and reaction_expr (reactions.yaml),
+# face_down and motion_reactions (motion.yaml), ota_state and ota_pct (ota: in cgotchi.yaml).
 
 # 240x296 ST7789-class panel, no MISO. MADCTL 0x40 = mirror X, RGB order,
 # no inversion (reference/cheeko-gotchi/SKILL.md section 4). Portrait only; landscape needs offsets.
@@ -45,6 +46,8 @@ display:
       st.now_ms = millis();
       st.page = id(page_sel).active_index().value_or(0);
       st.expression = id(face_sel).active_index().value_or(0);
+      if ((int32_t) (id(reaction_until) - st.now_ms) > 0) st.reaction = id(reaction_expr);
+      else if (id(face_down).state && id(motion_reactions).state) st.reaction = (int) cgotchi::face::Expression::Sleepy;
       st.voice = id(va_state);
       // Voice replies play as announcements (ANNOUNCING), media from HA as PLAYING.
       const auto mp = id(gotchi_player).state;
@@ -244,7 +247,7 @@ select:
   - platform: template
     name: "Face Expression"
     id: face_sel
-    options: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink]   # same order as cgotchi::face::Expression
+    options: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Dizzy, Celebrating, Worried, Bored]   # same order as cgotchi::face::Expression
     initial_option: Happy
     optimistic: true
     restore_value: true

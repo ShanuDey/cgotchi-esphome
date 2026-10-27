@@ -49,6 +49,8 @@ class Face {
     if (now - last_ms_ < frame_ms_) return false;   // last_ms_ is the time of the last frame
     if (!settled_ || in_.speaking) return true;
     if (in_.voice == Voice::Listening || in_.voice == Voice::Thinking) return true;
+    if ((spiral_ || overlay_ == Overlay::Confetti) && now - last_ms_ >= kEffectMs) return true;
+    if (overlay_ == Overlay::Zzz && now - last_ms_ >= kSlowEffectMs) return true;
     return blinking(now) || due(now, next_blink_) || due(now, next_gaze_);
   }
 
@@ -57,6 +59,9 @@ class Face {
     Frame f;
     f.shape = cur_;
     f.hearts = hearts_;
+    f.spiral = spiral_;
+    f.overlay = overlay_;
+    f.now = now;
     f.heart_size = 56 + 4 * sinf(now / 220.0f);
 
     f.blink = blink_amount(now);
@@ -72,11 +77,15 @@ class Face {
 
  private:
   static constexpr uint32_t kBlinkMs = 180;
+  static constexpr uint32_t kEffectMs = 100;        // spiral, confetti: 10 fps is enough
+  static constexpr uint32_t kSlowEffectMs = 250;    // drifting Zzz
 
   Input in_;
   Shape cur_ = asleep_shape();   // what is on screen; starts closed so the boot animation opens it
   Shape target_;
   bool hearts_ = false;
+  bool spiral_ = false;
+  Overlay overlay_ = Overlay::None;
   bool settled_ = false;
   uint32_t last_ms_ = 0;
   uint32_t frame_ms_ = 50;   // minimum time between animation frames
@@ -122,7 +131,10 @@ class Face {
   Shape build_target() {
     const Look &look = looks()[(size_t) in_.expression];
     Shape s = look.shape;
-    hearts_ = look.hearts && in_.voice == Voice::Idle && !in_.speaking;
+    const bool calm = in_.voice == Voice::Idle && !in_.speaking;
+    hearts_ = look.hearts && calm;
+    spiral_ = look.spiral && calm;
+    overlay_ = calm ? look.overlay : Overlay::None;
 
     switch (in_.voice) {
       case Voice::Listening:   // wide open, waiting

@@ -11,13 +11,14 @@ external_components:
       url: https://github.com/ShanuDey/cgotchi-esphome
       ref: ${components_ref}
       path: components
-    components: [remote_webview, display_ui, face]
+    components: [remote_webview, display_ui, face, lis2dh12]
 ```
 
 - `remote_webview`: the WebView client, a patched copy of strange-v's
   RemoteWebViewClient.
 - `face`: header-only; the face expressions, animation and drawing.
 - `display_ui`: header-only; draws the screen (one header per page), the themes and colors.
+- `lis2dh12`: driver for the LIS2DH12 accelerometer, used through ESPHome's `motion` platform.
   Loads `face` with it. See [display-pages.md](display-pages.md#face).
 
 This is what lets the config work standalone in the HA builder with no local

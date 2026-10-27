@@ -31,6 +31,7 @@ struct State {
   uint32_t now_ms = 0;
   int page = FACE;
   int expression = 0;   // index into face::Expression
+  int reaction = -1;    // temporary face::Expression over the selected one, -1 for none
   int voice = 0;        // 0 idle, 1 listening, 2 thinking, 3 replying, 4 error
   bool playing = false;   // a reply or media
   bool mic_on = false;    // wake word or assistant

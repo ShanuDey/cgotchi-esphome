@@ -18,7 +18,21 @@ is selected (the **Display Page** select does not change).
 ## Face
 
 **Face Expression** (Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused,
-Love, Wink).
+Love, Wink, Dizzy, Celebrating, Worried, Bored).
+
+The face also reacts for a moment, then returns to the selected expression:
+
+| Input | Reaction |
+|---|---|
+| Shake | Dizzy |
+| Picked up or moved | Surprised |
+| Face down | Sleepy until it is turned back |
+| Tap | Love |
+| Press and hold | Sleepy |
+| Drag a finger across | Love |
+
+Reactions happen on the Face page only. The **Motion Reactions** switch turns the shake,
+move and face-down reactions off; touch reactions stay.
 
 ## Theme colors
 

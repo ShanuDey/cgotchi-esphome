@@ -6,7 +6,7 @@
 # goes back to its default. The control page (control.py) writes this same file.
 
 page = Face              # Face, Clock, Message
-expression = Happy       # Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink
+expression = Happy       # Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Dizzy, Celebrating, Worried, Bored
 voice = Idle             # Idle, Listening, Thinking, Replying, Error
 speaking = off           # on or off
 accent = #00c7ff        # face, clock digits, message title (the device Accent Color)

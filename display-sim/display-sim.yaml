@@ -84,7 +84,7 @@ select:
   - platform: template
     name: "Face Expression"
     id: face_sel
-    options: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink]   # same order as cgotchi::face::Expression
+    options: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Dizzy, Celebrating, Worried, Bored]   # same order as cgotchi::face::Expression
     initial_option: Happy
     optimistic: true
     on_value:

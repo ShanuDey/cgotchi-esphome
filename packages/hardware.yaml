@@ -1,4 +1,5 @@
-# Board hardware: I2C and touch, audio chips, speaker, mic, backlight, power latch, amp. Uses nothing else.
+# Board hardware: I2C and touch, audio chips, speaker, mic, backlight, power latch, amp.
+# Uses: touch_moved, touch_released (reactions.yaml).
 
 # One I2C bus shared by touch, both audio codecs and the accelerometer.
 i2c:
@@ -33,8 +34,14 @@ touchscreen:
           level: VERBOSE
           format: "touch x=%d y=%d raw x=%d y=%d"
           args: ["touch.x", "touch.y", "touch.x_raw", "touch.y_raw"]
-    # Taps belong to the WebView page (forwarded by remote_webview). Pages change with a long
-    # press of Volume Down or the Display Page select in HA.
+      - script.execute:
+          id: touch_moved
+          x: !lambda 'return touch.x;'
+          y: !lambda 'return touch.y;'
+    on_release:
+      - script.execute: touch_released
+    # On the Face page touches react (reactions.yaml); on the WebView page they are forwarded by
+    # remote_webview. Pages change with a long press of Volume Down or the Display Page select in HA.
 
 # One I2S bus shared by playback (ES8311) and capture (ES7210).
 # The ES8311 cannot record; all capture goes through the ES7210 (reference/cheeko-gotchi/SKILL.md).

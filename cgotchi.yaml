@@ -46,7 +46,7 @@ external_components:
       url: https://github.com/ShanuDey/cgotchi-esphome
       ref: ${components_ref}
       path: components
-    components: [remote_webview, display_ui, face]
+    components: [remote_webview, display_ui, face, lis2dh12]
 
 # Draws the screen (components/display_ui); loads the face engine (components/face) with it.
 display_ui:
@@ -57,6 +57,8 @@ packages:
   display: !include packages/display.yaml
   voice: !include packages/voice.yaml
   controls: !include packages/controls.yaml
+  reactions: !include packages/reactions.yaml
+  motion: !include packages/motion.yaml
   webview: !include packages/webview.yaml
 
 # Octal PSRAM is mandatory on this board (reference/cheeko-gotchi/SKILL.md Gotcha 1).

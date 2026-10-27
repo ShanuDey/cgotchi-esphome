@@ -13,7 +13,12 @@ namespace cgotchi {
 namespace face {
 
 // Order matches the "Face Expression" select options, so a restored selection stays valid.
-enum class Expression : uint8_t { Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Count };
+enum class Expression : uint8_t {
+  Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Dizzy, Celebrating, Worried, Bored, Count
+};
+
+// Drawn over the face.
+enum class Overlay : uint8_t { None, Zzz, Confetti, Sweat };
 
 // Mirrors the voice assistant state kept in cgotchi.yaml (va_state).
 enum class Voice : uint8_t { Idle, Listening, Thinking, Replying, Error };
@@ -48,7 +53,9 @@ static_assert(kFieldCount * sizeof(float) == sizeof(Shape), "kFields must list e
 struct Look {
   const char *name;
   Shape shape;
-  bool hearts;   // draw hearts instead of eyes
+  bool hearts = false;   // draw hearts instead of eyes
+  bool spiral = false;   // draw spinning spirals instead of eyes
+  Overlay overlay = Overlay::None;
 };
 
 // The face before the boot animation opens it: eyes closed, no mouth.
@@ -144,12 +151,62 @@ inline Shape wink() {
   return s;
 }
 
+inline Shape dizzy() {
+  Shape s;
+  s.eye_w = 56;
+  s.eye_h = 56;
+  s.eye_r = 28;
+  s.mouth_y = 205;
+  s.mouth_w = 26;
+  s.mouth_open = 24;
+  return s;
+}
+
+inline Shape celebrating() {
+  Shape s;
+  s.eye_h = 40;
+  s.lid_bot = 34;
+  s.mouth_w = 116;
+  s.mouth_open = 44;
+  return s;
+}
+
+inline Shape worried() {
+  Shape s;
+  s.eye_h = 56;
+  s.lid_tilt = -18;
+  s.mouth_y = 208;
+  s.mouth_w = 64;
+  s.mouth_curve = -14;
+  return s;
+}
+
+inline Shape bored() {
+  Shape s;
+  s.eye_h = 52;
+  s.lid_top = 26;
+  s.look_x = -8;
+  s.mouth_y = 200;
+  s.mouth_w = 56;
+  return s;
+}
+
 // Indexed by Expression.
 inline const Look *looks() {
   static const Look table[] = {
-      {"Happy", happy(), false},     {"Sad", sad(), false},           {"Sleepy", sleepy(), false},
-      {"Surprised", surprised(), false}, {"Angry", angry(), false},   {"Laughing", laughing(), false},
-      {"Confused", confused(), false},   {"Love", love(), true},      {"Wink", wink(), false},
+      {"Happy", happy()},
+      {"Sad", sad()},
+      {"Sleepy", sleepy(), false, false, Overlay::Zzz},
+      {"Surprised", surprised()},
+      {"Angry", angry()},
+      {"Laughing", laughing()},
+      {"Confused", confused()},
+      {"Love", love(), true},
+      {"Wink", wink()},
+      {"Dizzy", dizzy(), false, true},
+      {"Celebrating", celebrating(), false, false, Overlay::Confetti},
+      {"Worried", worried(), false, false, Overlay::Sweat},
+      {"Bored", bored()},
   };
   return table;
 }
