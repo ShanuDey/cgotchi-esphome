@@ -6,7 +6,7 @@ substitutions:
 
 esphome:
   name: cgotchi
-  friendly_name: Cheeko
+  friendly_name: cgotchi
   # GPIO 2 latches power OFF if driven HIGH (reference/cheeko-gotchi/SKILL.md Gotcha 8). Force it LOW
   # as early as possible so the device never cuts its own power.
   on_boot:
