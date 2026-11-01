@@ -11,6 +11,7 @@
 | See what appears in Home Assistant | [ha-entities.md](ha-entities.md) |
 | Use it with no Home Assistant or network | [standalone.md](standalone.md) |
 | Add a control dashboard to Home Assistant | [dashboard.md](dashboard.md) |
+| Control it with an HTTP API through Home Assistant | [api.md](api.md) |
 | Validate the config and check it works | [validate-and-verify.md](validate-and-verify.md) |
 | Fix a problem | [troubleshooting.md](troubleshooting.md) |
 | Check hardware status and gotchas | [hardware-notes.md](hardware-notes.md) |

@@ -11,6 +11,8 @@ the device's entities (see [ha-entities.md](ha-entities.md)), so it needs no fir
 | `GET/POST /api/cgotchi/voice` | On-device wake word on or off. |
 | `GET /api/cgotchi/touch` | Last touch gesture, buttons, shake and motion. |
 
+The integration ships its own icon in `custom_components/cgotchi/brand/` (Home Assistant 2026.3 and later).
+
 The microphone is not exposed: the ESPHome API only streams it to the Assist pipeline, which Home Assistant owns.
 
 ## Install
