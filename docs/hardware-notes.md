@@ -15,8 +15,8 @@ Pins and quirks come from [SKILL.md](../reference/cheeko-gotchi/SKILL.md).
 | Speaker (HA media player), mic level | works |
 | Charging detect (GPIO 37) | not possible, see below |
 | Middle button (GPIO 3) | not working, see [troubleshooting.md](troubleshooting.md) |
-| Touch (CST810) | used by the WebView page only |
-| Accelerometer (LIS2DH12) | not added yet |
+| Touch (CST810) | WebView page taps, and face reactions on the Face page |
+| Accelerometer (LIS2DH12) | added: shake, moving and face-up/down sensors (`components/lis2dh12`); boots, thresholds untuned |
 
 ## Notes
 

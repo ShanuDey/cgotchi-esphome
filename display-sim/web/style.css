@@ -53,12 +53,23 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 .swatches button { width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 2px solid var(--line); }
 .swatches button[aria-pressed="true"] { border-color: var(--text); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--accent); }
 
+input[type="color"] { width: 44px; height: 34px; padding: 2px; border: 2px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
+.hint { color: var(--muted); font-size: .85rem; align-self: center; }
+
 .toggles { display: flex; gap: 20px; margin-top: 16px; flex-wrap: wrap; }
 .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 output { color: var(--text); font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+[hidden] { display: none !important; }
+.wide { grid-column: 1 / -1; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.card .hint { margin: 8px 0 0; }
+input[type="text"], input[type="time"], textarea { width: 100%; font: inherit; color: var(--text); background: var(--chip); border: 2px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+input[type="time"] { width: auto; }
+textarea { resize: vertical; }
 
 .header-right { display: flex; align-items: center; gap: 12px; }
 .footnote { margin: 0; padding: 0 16px 16px; color: var(--muted); font-size: .9rem; }

@@ -1,9 +1,12 @@
 """Starts and stops the simulator itself. It needs Linux, so on Windows it runs inside WSL."""
+import logging
 import subprocess
 import sys
 from pathlib import Path
 
-from . import SIM_DIR
+from .config import SIM_DIR
+
+log = logging.getLogger(__name__)
 
 RUN_SH = SIM_DIR / "run.sh"
 # Matches the host program and the esphome process that started it, nothing else.
@@ -31,7 +34,7 @@ class Simulator:
             command = ["wsl", "-d", self.distro, "--", "bash", _wsl_path(RUN_SH)]
         else:
             command = ["bash", str(RUN_SH)]
-        print(f"starting the simulator: {' '.join(command)}")
+        log.info("starting the simulator: %s", " ".join(command))
         self.process = subprocess.Popen(command)
 
     def restart(self) -> None:
