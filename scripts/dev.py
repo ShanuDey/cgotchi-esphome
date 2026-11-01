@@ -1,10 +1,10 @@
 """Runs ESPHome on cgotchi.yaml with the custom components taken from this checkout (components/)
 instead of the GitHub branch, so edits there apply without pushing.
 
-    uv run dev.py config
-    uv run dev.py compile
-    uv run dev.py run --device <ip|COMx> --no-logs
-    uv run dev.py logs --device <ip>
+    uv run cgotchi config
+    uv run cgotchi compile
+    uv run cgotchi run --device <ip|COMx> --no-logs
+    uv run cgotchi logs --device <ip>
 
 Run it from the repo root. It writes cgotchi-dev.yaml (git-ignored): a copy of cgotchi.yaml with only
 the external_components source switched to local, then passes everything on to ESPHome. cgotchi.yaml
@@ -15,7 +15,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent
 GIT_SOURCE = re.compile(r"type: git\s+url: [^\r\n]+\s+ref: [^\r\n]+\s+path: components")
 LOCAL_SOURCE = "type: local\n      path: components"
 
