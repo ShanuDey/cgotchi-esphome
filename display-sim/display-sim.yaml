@@ -11,9 +11,9 @@ external_components:
   - source:
       type: local
       path: ../components
-    components: [face]
+    components: [display_ui, face]
 
-face:
+display_ui:
 
 logger:
 
@@ -26,27 +26,37 @@ display:
     update_interval: never
     auto_clear_enabled: false
     lambda: |-
-      const Color BG(0, 0, 0), DIM(130, 130, 130);
-      const uint32_t up = millis();
-      const bool booting = up < 2600;
-      const int expr = booting ? 0 : id(face_sel).active_index().value_or(0);
-      const int va = id(voice_sel).active_index().value_or(0);   // 0 idle, 1 listening, 2 thinking, 3 replying, 4 error
-      const bool speaking = !booting && id(speaking_sw).state;
-      auto &face = cgotchi::face::instance();
+      // The device's renderer (display_ui/ui.h). Display Frame and WebView are not simulated.
+      cgotchi::ui::State st;
+      st.now_ms = millis();
+      st.page = id(page_sel).active_index().value_or(0);
+      st.expression = id(face_sel).active_index().value_or(0);
+      st.voice = id(voice_sel).active_index().value_or(0);
+      st.playing = id(speaking_sw).state;
+      st.hour24 = id(clock_fmt_sel).active_index().value_or(0) == 1;
+      st.time = id(sim_time).now();
+      const std::string &fixed = id(clock_time).state;
+      if (fixed.size() == 5) {
+        st.time.hour = atoi(fixed.c_str());
+        st.time.minute = atoi(fixed.c_str() + 3);
+      }
+      st.message_title = id(msg_title).state;
+      st.message_body = id(msg_body).state;
+      cgotchi::ui::render(it, cgotchi::ui::make_palette(id(bg_color), id(accent_color), id(secondary_color)),
+                          {id(font_clock), id(font_med), id(font_small)}, st);
 
-      const auto &fc = id(face_color).remote_values;
-      const Color FACE((uint8_t) (fc.get_red() * 255), (uint8_t) (fc.get_green() * 255), (uint8_t) (fc.get_blue() * 255));
-      it.fill(BG);
-      face.visible = true;
-      face.update({(cgotchi::face::Expression) expr, (cgotchi::face::Voice) va, speaking, booting}, up);
-      face.draw(it, FACE, BG, up);
-      if (speaking) it.print(120, 262, id(font_small), DIM, TextAlign::TOP_CENTER, "speaking...");
-      else if (va == 1) it.print(120, 262, id(font_small), FACE, TextAlign::TOP_CENTER, "listening...");
-      else if (va == 2) it.print(120, 262, id(font_small), DIM, TextAlign::TOP_CENTER, "thinking...");
-      else if (va == 4) it.print(120, 262, id(font_small), Color(255, 80, 80), TextAlign::TOP_CENTER, "voice error");
-      if (booting && up >= 1200) it.print(120, 255, id(font_med), FACE, TextAlign::TOP_CENTER, "Hello!");
+time:
+  - platform: host
+    id: sim_time
+    on_time:
+      - seconds: 0               # once a minute
+        then:
+          - component.update: lcd
 
 font:
+  - file: "gfonts://Roboto"
+    id: font_clock
+    size: 72
   - file: "gfonts://Roboto"
     id: font_med
     size: 28
@@ -56,9 +66,25 @@ font:
 
 select:
   - platform: template
+    name: "Display Page"
+    id: page_sel
+    options: [Face, Clock, Message]   # first three of the device's, same order as cgotchi::ui::Page
+    initial_option: Face
+    optimistic: true
+    on_value:
+      - component.update: lcd
+  - platform: template
+    name: "Clock Format"
+    id: clock_fmt_sel
+    options: ["12 hour", "24 hour"]
+    initial_option: "12 hour"
+    optimistic: true
+    on_value:
+      - component.update: lcd
+  - platform: template
     name: "Face Expression"
     id: face_sel
-    options: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink]   # same order as cgotchi::face::Expression
+    options: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Dizzy, Celebrating, Worried, Bored]   # same order as cgotchi::face::Expression
     initial_option: Happy
     optimistic: true
     on_value:
@@ -71,22 +97,6 @@ select:
     optimistic: true
     on_value:
       - component.update: lcd
-  - platform: template
-    name: "Face Color Preset"
-    id: face_preset_sel
-    options: [Blue, Green, Pink, Orange, Purple, Red, Yellow, White]   # same order as cgotchi::face::FACE_PRESETS
-    initial_option: Blue
-    optimistic: true
-    on_value:
-      - lambda: |-
-          for (const auto &p : cgotchi::face::FACE_PRESETS) {
-            if (x == p.name) {
-              auto call = id(face_color).turn_on();
-              call.set_rgb(p.r, p.g, p.b);
-              call.set_transition_length(0);
-              call.perform();
-            }
-          }
 
 switch:
   - platform: template
@@ -96,6 +106,35 @@ switch:
     on_turn_on:
       - component.update: lcd
     on_turn_off:
+      - component.update: lcd
+
+text:
+  - platform: template
+    name: "Message Title"
+    id: msg_title
+    mode: text
+    max_length: 16            # as on the device
+    optimistic: true
+    initial_value: "Hello"
+    on_value:
+      - component.update: lcd
+  - platform: template
+    name: "Message Body"
+    id: msg_body
+    mode: text
+    max_length: 120           # as on the device
+    optimistic: true
+    initial_value: "Set me from Home Assistant"
+    on_value:
+      - component.update: lcd
+  - platform: template
+    name: "Clock Time"        # simulator only: "HH:MM" freezes the clock, empty is the computer's time
+    id: clock_time
+    mode: text
+    max_length: 5
+    optimistic: true
+    initial_value: ""
+    on_value:
       - component.update: lcd
 
 number:
@@ -123,11 +162,35 @@ output:
     id: face_b
     type: float
     write_action: []
+  - platform: template
+    id: sec_r
+    type: float
+    write_action: []
+  - platform: template
+    id: sec_g
+    type: float
+    write_action: []
+  - platform: template
+    id: sec_b
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_r
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_g
+    type: float
+    write_action: []
+  - platform: template
+    id: bg_b
+    type: float
+    write_action: []
 
 light:
   - platform: rgb
-    name: "Face Color"
-    id: face_color
+    name: "Accent Color"
+    id: accent_color
     red: face_r
     green: face_g
     blue: face_b
@@ -138,6 +201,36 @@ light:
       red: 0%
       green: 78%
       blue: 100%
+    on_state:
+      - component.update: lcd
+  - platform: rgb
+    name: "Secondary Color"
+    id: secondary_color
+    red: sec_r
+    green: sec_g
+    blue: sec_b
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 50%
+      green: 90%
+      blue: 100%
+    on_state:
+      - component.update: lcd
+  - platform: rgb
+    name: "Background Color"
+    id: bg_color
+    red: bg_r
+    green: bg_g
+    blue: bg_b
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 0s
+    initial_state:
+      color_mode: rgb
+      red: 0%
+      green: 0%
+      blue: 0%
     on_state:
       - component.update: lcd
 
@@ -180,30 +273,70 @@ interval:
             ESP_LOGW("settings", "'%s' is not an option of %s", value.c_str(), sel->get_name().c_str());
           };
 
+          // "#rrggbb" sets a color light directly (like picking a color in HA).
+          auto set_color = [&](light::LightState *l, const std::string &value) {
+            if (value.size() != 7 || value[0] != '#' || value.find_first_not_of("0123456789abcdefABCDEF", 1) != std::string::npos) {
+              ESP_LOGW("settings", "'%s' is not a color like #00c7ff", value.c_str());
+              return;
+            }
+            // Like HA: the strongest channel becomes 100% and the brightness holds the rest; black is off.
+            const long rgb = strtol(value.c_str() + 1, nullptr, 16);
+            const float r = ((rgb >> 16) & 0xFF) / 255.0f, g = ((rgb >> 8) & 0xFF) / 255.0f, b = (rgb & 0xFF) / 255.0f;
+            const float m = fmaxf(r, fmaxf(g, b));
+            if (m == 0.0f) {
+              auto off = l->turn_off();
+              off.set_transition_length(0);
+              off.perform();
+              return;
+            }
+            auto call = l->turn_on();
+            call.set_rgb(r / m, g / m, b / m);
+            call.set_brightness(m);
+            call.set_transition_length(0);
+            call.perform();
+          };
+
           size_t start = 0;
           while (start <= text.size()) {
             size_t end = text.find('\n', start);
             if (end == std::string::npos) end = text.size();
             std::string line = text.substr(start, end - start);
             start = end + 1;
-            line = trim(line.substr(0, line.find('#')));
-            if (line.empty()) continue;
+            line = trim(line);
+            if (line.empty() || line[0] == '#') continue;
             const size_t eq = line.find('=');
             if (eq == std::string::npos) {
               ESP_LOGW("settings", "ignored line without '=': %s", line.c_str());
               continue;
             }
-            const std::string key = lower(trim(line.substr(0, eq))), value = trim(line.substr(eq + 1));
+            const std::string key = lower(trim(line.substr(0, eq)));
+            std::string value = trim(line.substr(eq + 1));
+            // A comment starts at "#" after a space or tab. A value may itself start with "#" (a color).
+            // Message text is literal: a "#" in it is not a comment.
+            const bool literal = key == "message_title" || key == "message_body";
+            for (size_t i = 1; i < value.size() && !literal; i++) {
+              if (value[i] == '#' && (value[i - 1] == ' ' || value[i - 1] == '\t')) { value.erase(i); break; }
+            }
+            value = trim(value);
             ESP_LOGI("settings", "%s = %s", key.c_str(), value.c_str());
-            if (key == "expression") pick(id(face_sel), value);
-            else if (key == "voice") pick(id(voice_sel), value);
-            else if (key == "color") pick(id(face_preset_sel), value);
-            else if (key == "speaking") {
+            auto on_off = [&](switch_::Switch *sw) {
               const std::string v = lower(value);
-              if (v == "on" || v == "true" || v == "1") id(speaking_sw).turn_on();
-              else if (v == "off" || v == "false" || v == "0") id(speaking_sw).turn_off();
-              else ESP_LOGW("settings", "speaking must be on or off, not '%s'", value.c_str());
-            } else if (key == "fps") {
+              if (v == "on" || v == "true" || v == "1") sw->turn_on();
+              else if (v == "off" || v == "false" || v == "0") sw->turn_off();
+              else ESP_LOGW("settings", "%s must be on or off, not '%s'", key.c_str(), value.c_str());
+            };
+            if (key == "page") pick(id(page_sel), value);
+            else if (key == "expression") pick(id(face_sel), value);
+            else if (key == "voice") pick(id(voice_sel), value);
+            else if (key == "accent") set_color(id(accent_color), value);
+            else if (key == "secondary") set_color(id(secondary_color), value);
+            else if (key == "background") set_color(id(bg_color), value);
+            else if (key == "speaking") on_off(id(speaking_sw));
+            else if (key == "clock_24h") id(clock_fmt_sel).make_call().set_option(lower(value) == "on" || lower(value) == "true" || value == "1" ? "24 hour" : "12 hour").perform();
+            else if (key == "clock_time") id(clock_time).make_call().set_value(value).perform();
+            else if (key == "message_title") id(msg_title).make_call().set_value(value.substr(0, 16)).perform();
+            else if (key == "message_body") id(msg_body).make_call().set_value(value.substr(0, 120)).perform();
+            else if (key == "fps") {
               char *endp = nullptr;
               const float fps = strtof(value.c_str(), &endp);
               if (endp == value.c_str()) ESP_LOGW("settings", "fps must be a number, not '%s'", value.c_str());
@@ -226,7 +359,8 @@ interval:
 
 # Keys (click the window first so it has focus):
 #   Left / Right  previous / next expression      V  next voice state
-#   S             toggle speaking                 C  next color
+#   S             toggle speaking
+#   P             next page (Face, Clock, Message)
 #   Up / Down     frame rate +5 / -5 fps
 binary_sensor:
   - platform: sdl
@@ -250,10 +384,10 @@ binary_sensor:
     on_press:
       - switch.toggle: speaking_sw
   - platform: sdl
-    id: key_color
-    key: SDLK_c
+    id: key_page
+    key: SDLK_p
     on_press:
-      - select.next: {id: face_preset_sel, cycle: true}
+      - select.next: {id: page_sel, cycle: true}
   - platform: sdl
     id: key_fps_up
     key: SDLK_UP

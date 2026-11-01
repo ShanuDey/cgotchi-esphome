@@ -9,3 +9,6 @@ dependencies = [
     "playwright==1.49.0",
     "pillow>=11",
 ]
+
+[tool.uv]
+package = false

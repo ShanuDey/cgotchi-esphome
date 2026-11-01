@@ -1,0 +1,51 @@
+# Buttons: volume, push-to-talk, page change. Uses: gotchi_player, va_state (voice.yaml), page_sel, show_volume (display.yaml).
+
+binary_sensor:
+  - platform: gpio
+    name: "Volume Up"
+    pin:
+      number: 40
+      mode: INPUT_PULLUP
+      inverted: true           # active LOW
+    filters:
+      - delayed_on_off: 20ms   # debounce
+    on_click:
+      - min_length: 20ms         # short press: volume up
+        max_length: 600ms
+        then:
+          - media_player.volume_up: gotchi_player
+          - script.execute: show_volume
+      - min_length: 700ms        # long press: push-to-talk, press again to cancel
+        max_length: 10s
+        then:
+          - if:
+              condition:
+                lambda: 'return id(va_state) != 0;'
+              then:
+                - voice_assistant.stop:     # cancel an active conversation
+              else:
+                - micro_wake_word.stop:          # free the mic for push-to-talk
+                - voice_assistant.start:
+
+  - platform: gpio
+    name: "Volume Down"
+    pin:
+      number: 39
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on_off: 20ms
+    on_click:
+      - min_length: 20ms         # short press: volume down
+        max_length: 600ms
+        then:
+          - media_player.volume_down: gotchi_player
+          - script.execute: show_volume
+      - min_length: 700ms        # long press: next page (Face, Clock, Message, Display Frame, WebView)
+        max_length: 10s
+        then:
+          - select.next:
+              id: page_sel
+              cycle: true
+
+# No middle-button sensor: it feeds the power circuit and never reaches GPIO 3 on this unit (the PWR indicator in reference/cheeko-gotchi hardware_test stays dark too).

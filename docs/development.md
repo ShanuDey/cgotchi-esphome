@@ -2,32 +2,34 @@
 
 ## How the components are sourced
 
-`cgotchi.yaml` loads its two custom components from GitHub:
+`cgotchi.yaml` loads its three custom components from GitHub:
 
 ```yaml
 external_components:
   - source:
       type: git
       url: https://github.com/ShanuDey/cgotchi-esphome
-      ref: main
+      ref: ${components_ref}
       path: components
-    components: [remote_webview, face]
+    components: [remote_webview, display_ui, face, lis2dh12]
 ```
 
 - `remote_webview`: the WebView client, a patched copy of strange-v's
   RemoteWebViewClient.
-- `face`: header-only; the face expressions, animation and drawing, plus the color
-  presets. See [display-pages.md](display-pages.md#face).
+- `face`: header-only; the face expressions, animation and drawing.
+- `display_ui`: header-only; draws the screen (one header per page), the themes and colors.
+- `lis2dh12`: driver for the LIS2DH12 accelerometer, used through ESPHome's `motion` platform.
+  Loads `face` with it. See [display-pages.md](display-pages.md#face).
 
 This is what lets the config work standalone in the HA builder with no local
 files. The catch: edits to `components/` have no effect on a build until you push
-them. To iterate on a component locally, run ESPHome through `dev.py` (from
-the repo root) instead of `uv run esphome`:
+them. To iterate on a component locally, run ESPHome through `uv run cgotchi dev` from the repo root (code in
+`scripts/dev.py`) instead of `uv run esphome`:
 
 ```bash
-uv run dev.py compile
-uv run dev.py run --device <ip|COMx> --no-logs
-uv run dev.py logs --device <ip>
+uv run cgotchi dev compile
+uv run cgotchi dev run --device <ip|COMx> --no-logs
+uv run cgotchi dev logs --device <ip>
 ```
 
 It writes `cgotchi-dev.yaml` (git-ignored), a copy of `cgotchi.yaml` with only the
@@ -38,10 +40,37 @@ to build what the branch on GitHub will give users.
 ESPHome caches the git clone; use `esphome config --clean` (or delete the cached
 clone under `.esphome/`) after pushing a change.
 
+## Config layout
+
+`cgotchi.yaml` holds the device identity and core services and lists the feature files in
+`packages/`: `hardware.yaml`, `display.yaml`, `voice.yaml`, `controls.yaml` and
+`webview.yaml`. Each file starts with what it uses from the others. C++ for the display lives in
+`components/display_ui/` (`ui.h` draws the pages), not in the YAML, so lambdas stay short and the
+display simulator draws the same thing. `esphome config cgotchi.yaml` prints the merged result.
+
+## Pin a tag or test a branch
+
+In the HA builder the config and the components are fetched separately, so name the tag or
+branch twice. Push it first: the builder reads GitHub, not your PC.
+
+```yaml
+substitutions:
+  components_ref: my-branch   # or a tag such as v0.1.0
+
+packages:
+  cgotchi:
+    url: https://github.com/ShanuDey/cgotchi-esphome
+    ref: my-branch
+    files: [cgotchi.yaml]
+    refresh: 1min
+```
+
+`refresh` stops ESPHome reusing a cached clone for a day.
+
 ## Releasing
 
 1. Merge to `main` and tag a release (for example `v0.1.0`).
-2. Point `ref:` in `cgotchi.yaml` and the `packages:` line in
+2. Point `components_ref` in `cgotchi.yaml` and the `packages:` line in
    [install.md](install.md) at the tag, so users don't break when the branch moves.
 
 ## Other folders

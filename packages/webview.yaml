@@ -1,0 +1,56 @@
+# The WebView page. Uses: lcd (display.yaml); the display lambda hands the panel over while it shows.
+
+# An HA dashboard rendered by the Remote WebView server (remote-webview/) and streamed
+# as JPEG tiles. Taps go to the page. Starts paused: the display lambda (display.yaml) turns it on while the
+# WebView page shows. Long press Volume Down to change page.
+remote_webview:
+  id: rwv
+  display_id: lcd
+  server: !secret webview_server
+  url: !secret webview_url
+  active: false
+  flip_x: false              # the panel's own mirror_x covers it; see components/remote_webview/README.md
+  tile_size: 16
+  full_frame_tile_count: 1
+  max_bytes_per_msg: 61440
+  jpeg_quality: 85
+  big_endian: true
+  stats_interval: 10s
+  current_url_sensor:
+    name: "WebView Current URL"
+
+text:
+  # Change the dashboard from HA without reflashing (not kept across reboots; the
+  # webview_url substitution is the default).
+  - platform: template
+    name: "WebView URL"
+    id: webview_url_text
+    mode: text
+    max_length: 255
+    optimistic: true
+    restore_value: false
+    initial_value: !secret webview_url
+    set_action:
+      - lambda: |-
+          if (!id(rwv).open_url(x)) {
+            id(rwv).set_url(x);
+            ESP_LOGI("webview", "not connected yet, URL queued");
+          }
+
+switch:
+  # Mirrors the WebView page left to right in software. Normally off (the display's mirror_x
+  # already orients every page); a debugging aid if only the web page ever looks flipped.
+  # Not remembered: it is off after every reboot.
+  - platform: template
+    name: "WebView Flip X"
+    id: webview_flip
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - lambda: |-
+          id(rwv).set_flip_x(true);
+          id(rwv).refresh();
+    turn_off_action:
+      - lambda: |-
+          id(rwv).set_flip_x(false);
+          id(rwv).refresh();

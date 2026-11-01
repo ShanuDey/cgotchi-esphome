@@ -1,0 +1,278 @@
+openapi: 3.0.3
+info:
+  title: Cgotchi API
+  version: 0.2.0
+  description: |
+    Drive the cgotchi device through Home Assistant. Every endpoint needs the long-lived access
+    token of an administrator (`Authorization: Bearer <token>`). Mic audio is not exposed: use
+    the voice pipeline (`/voice`).
+
+    A POST returns the state read right after the change. The device reports its new value a
+    moment later, so a field you just set can still show the old value; read it again to confirm.
+servers:
+  - url: http://homeassistant.local:8123
+    description: Your Home Assistant address
+security:
+  - bearer: []
+paths:
+  /api/cgotchi/state:
+    get:
+      summary: Snapshot of display, speaker, voice and touch
+      responses:
+        "200":
+          description: Current state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  display: { $ref: "#/components/schemas/DisplayState" }
+                  speaker: { $ref: "#/components/schemas/SpeakerState" }
+                  voice: { $ref: "#/components/schemas/VoiceState" }
+                  touch: { $ref: "#/components/schemas/TouchState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+  /api/cgotchi/display:
+    get:
+      summary: Read the display settings
+      responses:
+        "200":
+          description: Current display settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DisplayState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+    post:
+      summary: Change the display
+      description: Send only the fields to change. Returns the new state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DisplayRequest" }
+            examples:
+              message:
+                value: { page: Message, message_title: Hello, message_body: Set from the API }
+              theme:
+                value: { theme: Night, expression: Love }
+              colors:
+                value: { accent_color: [0, 200, 255], background_color: [0, 0, 0] }
+      responses:
+        "200":
+          description: New display settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DisplayState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/EntityMissing" }
+        "502": { $ref: "#/components/responses/DeviceError" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+  /api/cgotchi/speaker:
+    get:
+      summary: Read the speaker state and volume
+      responses:
+        "200":
+          description: Speaker state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SpeakerState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+    post:
+      summary: Play audio, speak text or set the volume
+      description: |
+        `message` needs `tts_entity` (a Home Assistant `tts.*` entity). Several fields can be
+        sent together; they run in the order volume, action, media_url, message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SpeakerRequest" }
+            examples:
+              play:
+                value: { media_url: "https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3", volume: 0.8 }
+              speak:
+                value: { message: Hello from the API, tts_entity: tts.home_assistant_cloud }
+      responses:
+        "200":
+          description: New speaker state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SpeakerState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/EntityMissing" }
+        "502": { $ref: "#/components/responses/DeviceError" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+  /api/cgotchi/voice:
+    get:
+      summary: Read the on-device wake word state
+      responses:
+        "200":
+          description: Voice state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VoiceState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+    post:
+      summary: Turn the on-device wake word on or off
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wake_word_mode]
+              properties:
+                wake_word_mode: { type: boolean }
+      responses:
+        "200":
+          description: New voice state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VoiceState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/EntityMissing" }
+        "502": { $ref: "#/components/responses/DeviceError" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+  /api/cgotchi/touch:
+    get:
+      summary: Last touch gesture, buttons and motion
+      responses:
+        "200":
+          description: Touch and motion state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TouchState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/NotSetUp" }
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Home Assistant long-lived access token (profile page, Security).
+  responses:
+    BadRequest:
+      description: Invalid request body
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
+    Forbidden:
+      description: The token belongs to a user who is not an administrator
+    Unauthorized:
+      description: Missing or invalid token
+    EntityMissing:
+      description: The device has no such entity, or Home Assistant has no such service (for example no TTS)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
+    DeviceError:
+      description: Home Assistant could not reach the device
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
+    NotSetUp:
+      description: The cgotchi integration has no device configured
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Message" }
+  schemas:
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+    Color:
+      type: array
+      items: { type: integer, minimum: 0, maximum: 255 }
+      minItems: 3
+      maxItems: 3
+      example: [0, 200, 255]
+    DisplayRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        page: { type: string, enum: [Face, Clock, Message, Display Frame, WebView] }
+        frame_source: { type: string, description: A preset from the display-frame service, or Custom. }
+        frame_url: { type: string, maxLength: 255 }
+        clock_format: { type: string, enum: [12 hour, 24 hour] }
+        theme:
+          type: string
+          enum: [Classic, Midnight, Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint, Night, Custom]
+        expression:
+          type: string
+          enum: [Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused, Love, Wink, Dizzy, Celebrating, Worried, Bored]
+        frame_rate: { type: integer, minimum: 5, maximum: 25 }
+        message_title: { type: string, maxLength: 16 }
+        message_body: { type: string, maxLength: 120 }
+        accent_color: { $ref: "#/components/schemas/Color" }
+        secondary_color: { $ref: "#/components/schemas/Color" }
+        background_color: { $ref: "#/components/schemas/Color" }
+    Light:
+      type: object
+      nullable: true
+      properties:
+        "on": { type: boolean }
+        rgb_color: { type: array, nullable: true, items: { type: integer } }
+    DisplayState:
+      type: object
+      description: Same fields as the request; null when the entity is unavailable.
+      properties:
+        page: { type: string, nullable: true }
+        frame_source: { type: string, nullable: true }
+        frame_url: { type: string, nullable: true }
+        clock_format: { type: string, nullable: true }
+        theme: { type: string, nullable: true }
+        expression: { type: string, nullable: true }
+        frame_rate: { type: number, nullable: true }
+        message_title: { type: string, nullable: true }
+        message_body: { type: string, nullable: true }
+        accent_color: { $ref: "#/components/schemas/Light" }
+        secondary_color: { $ref: "#/components/schemas/Light" }
+        background_color: { $ref: "#/components/schemas/Light" }
+    SpeakerRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        media_url: { type: string }
+        volume: { type: number, minimum: 0, maximum: 1 }
+        action: { type: string, enum: [play, pause, stop] }
+        message: { type: string }
+        tts_entity: { type: string, example: tts.home_assistant_cloud }
+    SpeakerState:
+      type: object
+      properties:
+        state: { type: string, nullable: true, example: idle }
+        volume: { type: number, nullable: true }
+    VoiceState:
+      type: object
+      properties:
+        wake_word_mode: { type: boolean, nullable: true }
+    Event:
+      type: object
+      nullable: true
+      properties:
+        event_type: { type: string, nullable: true, example: tap }
+        at: { type: string, description: Time of the last event. }
+    TouchState:
+      type: object
+      properties:
+        face_touch: { $ref: "#/components/schemas/Event" }
+        shake: { $ref: "#/components/schemas/Event" }
+        moving: { type: boolean, nullable: true }
+        face_up: { type: boolean, nullable: true }
+        face_down: { type: boolean, nullable: true }
+        volume_up: { type: boolean, nullable: true }
+        volume_down: { type: boolean, nullable: true }

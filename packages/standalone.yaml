@@ -1,0 +1,52 @@
+# Use without Home Assistant: a local web page, and a clock set from the phone. Uses: lcd, page_sel (display.yaml).
+# Join the "Cgotchi Fallback" hotspot, then open http://192.168.4.1/time (sets the clock, then shows the controls).
+
+web_server:
+  version: 3
+  local: true                  # serve the page from flash: the default loads it from a CDN, which is offline here
+  ota: false                   # no plaintext firmware upload on /update; flash with the encrypted ota: platform
+  log: false                   # no live log stream to each open page
+
+phone_time:
+
+globals:
+  - id: manual_epoch           # set time as seconds, 0 when never set
+    type: uint32_t
+    initial_value: "0"
+  - id: manual_set_ms
+    type: uint32_t
+    initial_value: "0"
+
+text:
+  # "YYYY-MM-DD HH:MM[:SS]", the phone's local time. Used only while Home Assistant has not set the clock.
+  - platform: template
+    name: "Set Time"
+    id: set_time
+    mode: text
+    max_length: 19
+    optimistic: true
+    set_action:
+      - lambda: |-
+          int y, mo, d, h, mi, s = 0;
+          if (sscanf(x.c_str(), "%d-%d-%d %d:%d:%d", &y, &mo, &d, &h, &mi, &s) < 5 || y < 2019) return;   // the Clock page needs 2019 or later
+          esphome::ESPTime t{};
+          t.year = y; t.month = mo; t.day_of_month = d; t.hour = h; t.minute = mi; t.second = s;
+          t.recalc_timestamp_utc(false);
+          if (t.timestamp < 0) return;   // a field was out of range
+          id(manual_epoch) = t.timestamp;
+          id(manual_set_ms) = millis();
+      - component.update: lcd
+
+interval:
+  # The Clock page only redraws on a Home Assistant minute tick, so do it here while that clock is unset.
+  # Also re-bases the manual time hourly so the 32-bit millis() never wraps against it (after 49.7 days).
+  - interval: 1s
+    then:
+      - lambda: |-
+          if (id(manual_epoch) == 0) return;
+          const uint32_t elapsed = (millis() - id(manual_set_ms)) / 1000;
+          if (elapsed >= 3600) {
+            id(manual_epoch) += elapsed;
+            id(manual_set_ms) += elapsed * 1000;
+          }
+          if (id(page_sel).active_index().value_or(0) == 1 && !id(ha_time).now().is_valid()) id(lcd).update();

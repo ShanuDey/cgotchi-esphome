@@ -1,4 +1,4 @@
-# Display pages and settings
+﻿# Display pages and settings
 
 The display has five pages. Change page with a long press of Volume Down or the
 **Display Page** select in HA. The select is not restored on boot, so a reboot
@@ -18,8 +18,45 @@ is selected (the **Display Page** select does not change).
 ## Face
 
 **Face Expression** (Happy, Sad, Sleepy, Surprised, Angry, Laughing, Confused,
-Love, Wink) and **Face Color** (a color picker for the face only) with **Face
-Color Preset** (Blue, Green, Pink, Orange, Purple, Red, Yellow, White, or Custom).
+Love, Wink, Dizzy, Celebrating, Worried, Bored).
+
+The face also reacts for a moment, then returns to the selected expression:
+
+| Input | Reaction |
+|---|---|
+| Shake | Dizzy |
+| Picked up or moved | Surprised |
+| Face down | Sleepy until it is turned back |
+| Tap | Love |
+| Press and hold | Sleepy |
+| Drag a finger across | Love |
+
+Reactions happen on the Face page only. The **Motion Reactions** switch turns the shake,
+move and face-down reactions off; touch reactions stay.
+
+## Theme colors
+
+Three color lights theme the Face, Clock and Message pages. The Display Frame and
+WebView pages draw their own content and are not themed.
+
+The **Theme** select sets all three lights at once: Classic (default), Midnight,
+Bubblegum, Forest, Sunset, Grape, Ocean, Lava, Paper, Mint and Night. Paper and Mint are
+light themes. Night is a dim red and amber theme with soft grey text for dark rooms. It shows **Custom** when the three lights match no theme (picking Custom does
+nothing), so you can start from a theme and then adjust one light. The themes live in
+[themes.h](../components/display_ui/themes.h); keep their names in sync with the select options
+in `packages/display.yaml`, in the same order.
+
+Each light also has a color picker, and its brightness slider scales the color. The
+on/off switch does nothing, except for the background, where off is black.
+
+| Entity | Used for |
+|---|---|
+| **Accent Color** | The headline color: the face, clock digits, message title, volume and update bars. Default blue. |
+| **Secondary Color** | Supporting text: message body, clock date, dividers and the volume border. Default light cyan. |
+| **Background Color** | The page background, dark or light. Off is black, and that is the default. The text and hint colors switch between white and black to match, and an accent or secondary too close to the background is pushed lighter or darker so it stays readable. |
+
+Status colors stay fixed on every page: the green mic dot, red errors and gray hints.
+A very dark accent or secondary is brightened so it stays visible on the background.
 
 The face is drawn by the header-only `face` component, split by concern:
 
@@ -28,7 +65,23 @@ The face is drawn by the header-only `face` component, split by concern:
 | [looks.h](../components/face/looks.h) | The `Shape` model (eye size, lids, gaze, mouth) and one function per expression. |
 | [draw.h](../components/face/draw.h) | Draws one frame from a `Shape`. No state, no timing. |
 | [face.h](../components/face/face.h) | Eases between expressions, blinks, glances around, reacts to voice and audio. |
-| [colors.h](../components/face/colors.h) | The color presets. |
+
+The screen around the face is drawn by the header-only `display_ui` component. The device and
+the display simulator both call its `render()`, so they draw the same thing. ESPHome copies only
+the files directly in a component's folder, so the pages are flat files named `<page>_page.h`:
+
+| File | Role |
+|---|---|
+| [ui.h](../components/display_ui/ui.h) | `render()`: picks the page and draws the popups over it. |
+| [state.h](../components/display_ui/state.h) | `State`: everything a frame depends on, as plain values the YAML fills in. |
+| [face_page.h](../components/display_ui/face_page.h) | The Face page: the face and its status line. |
+| [clock_page.h](../components/display_ui/clock_page.h) | The Clock page. |
+| [message_page.h](../components/display_ui/message_page.h) | The Message page, with word wrap. |
+| [frame_page.h](../components/display_ui/frame_page.h) | The Display Frame page. |
+| [widgets.h](../components/display_ui/widgets.h) | The volume popup, the mic dot and the firmware update screen. |
+| [themes.h](../components/display_ui/themes.h) | The ten themes, and reading and setting the three theme lights. |
+| [palette.h](../components/display_ui/palette.h) | Works out the screen colors (background, text, hint, accent, secondary) from the three theme lights. |
+| [text.h](../components/display_ui/text.h) | Word wrap, URL encoding and line splitting. Plain C++, tested in [tests/](../components/display_ui/tests/test_text.cpp). |
 
 Between expressions the face morphs rather than snapping. While nothing moves, it
 redraws only for the occasional blink or glance, which keeps battery use low.
@@ -40,8 +93,7 @@ it runs this same component on your PC with a control page and a slider for ever
 
 To add an expression: write a function in `looks.h`, add it to the `Expression`
 enum and to `looks()`, and add its name to the **Face Expression** select in
-`cgotchi.yaml` in the same order. Keep the color preset names in `colors.h` in
-sync with the **Face Color Preset** select the same way.
+`cgotchi.yaml` in the same order. 
 
 ## Clock
 
@@ -67,7 +119,7 @@ fit. Content in the middle of each edge stays visible.
 
 ## Saved settings
 
-**Clock Format**, **Face Expression**, **Face Color Preset**, **Message Title/Body**
+**Clock Format**, **Face Expression**, **Theme**, the three theme color lights, **Message Title/Body**
 and **Display Frame URL** use `restore_value: true`, so they live in flash and
 survive power-off, reboots and OTA. Renaming one or changing its options in
 the YAML resets it to the default once; a full flash erase clears them all.

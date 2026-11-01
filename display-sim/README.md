@@ -6,8 +6,9 @@ so the same C++ that runs on the board draws what you see. Use it to tune faces 
 animation before flashing.
 
 It stands in for Home Assistant: the control page sets the same entities HA sets on the
-device (expression, voice state, speaking, color, frame rate). Only the face is simulated: not
-the other pages, audio, touch, Wi-Fi or the real HA connection.
+device (page, expression, voice state, speaking, theme colors, clock and message text, frame rate). The Face, Clock and
+Message pages are simulated; Display Frame and WebView (they need the network), audio, touch, Wi-Fi and the real HA
+connection are not.
 
 ## One-time setup (Windows 11)
 
@@ -35,7 +36,7 @@ not touched. The window appears through WSLg, which ships with Windows 11.
 From the repo root in PowerShell (or any shell on Linux or macOS):
 
 ```powershell
-uv run --group sim display-sim/control.py
+uv run display-sim/control.py
 ```
 
 This starts the simulator in WSL, opens the control page at <http://localhost:8081>, and
@@ -84,7 +85,7 @@ Click the window first so it has focus.
 | Left / Right | previous / next expression |
 | V | next voice state (Idle, Listening, Thinking, Replying, Error) |
 | S | toggle speaking |
-| C | next color preset |
+| P | next page (Face, Clock, Message) |
 | Up / Down | frame rate +5 / -5 fps |
 
 Keys change the running simulator only, not `settings.txt`, so the next edit of the file or
@@ -92,8 +93,8 @@ the page puts everything back to what it says.
 
 ## What the page expects from the face headers
 
-`simctl/meta.py` reads the expression and voice names from the enums in
-`components/face/looks.h`, and the color presets from `colors.h`, with simple patterns. Keep
+`simctl/face_headers.py` reads the expression and voice names from the enums in
+`components/face/looks.h`, and the themes from `components/display_ui/themes.h`, with simple patterns. Keep
 their existing style. If it drifts, the page stops at startup with a message saying what it
 could not find. A new expression or color shows up on the page after a restart.
 
@@ -103,13 +104,26 @@ could not find. A new expression or color shows up on the page after a restart.
 |---|---|
 | `display-sim.yaml` | the simulator's ESPHome config (SDL window, settings polling, key bindings) |
 | `run.sh` | runs it in WSL |
-| `control.py`, `simctl/` | the control page's FastAPI server (`meta`, `settings`, `api`, `launcher`) |
+| `control.py`, `simctl/` | the control page's FastAPI server (see the module list in `simctl/__init__.py`) |
+| `tests/` | pytest tests for the parsers, the settings file and the API |
 | `web/` | the page: plain HTML, CSS and JavaScript, no build step |
 | `settings.example.txt` | documented template for `settings.txt` |
 
+## Tests
+
+```powershell
+uv run pytest display-sim/tests
+```
+
+CI ([check.yml](../.github/workflows/check.yml)) runs these, builds the simulator (which compiles the
+shared C++ headers) and validates the device config. To validate the simulator config yourself, run
+`./run.sh config` in WSL: ESPHome's SDL display needs
+`sdl2-config`, so `esphome config` does not work on Windows.
+
 ## Keeping it in step with the device
 
-`display-sim.yaml` holds a small copy of the face part of the display lambda in
-`cgotchi.yaml`, and the same option lists. If you change the face page in
-`cgotchi.yaml`, mirror it here. The engine itself (`components/face/`) is shared, so
-edits to expressions and drawing show up in both with no copying.
+The device and the simulator draw with the same code: `cgotchi::ui::render()` in
+[components/display_ui/ui.h](../components/display_ui/ui.h). Edits to a page, an expression or the colors
+show up in both with no copying. Only the entities are mirrored by hand: the option lists in
+`display-sim.yaml` (pages, expressions, voices, clock format) must match the device's, and so
+must the message text limits (`MESSAGE_TITLE_MAX` and `MESSAGE_BODY_MAX` in `simctl/meta.py`).
