@@ -25,6 +25,7 @@ What the device page in HA shows.
 | Secondary Color | light | Supporting text (message body, clock date). |
 | Background Color | light | Page background, dark or light. Off is black. |
 | Message Title / Message Body | text | Content of the Message page. |
+| Set Time | text | Clock fallback when HA has not set it, `YYYY-MM-DD HH:MM[:SS]`. The `/time` page fills it, see [standalone.md](standalone.md). |
 | Wake Word Mode | switch | On-device wake word, see [voice-assistant.md](voice-assistant.md). |
 | Mic Level | sensor | Loudness in dB. |
 | Volume Up / Volume Down | binary sensor | The hardware buttons. |

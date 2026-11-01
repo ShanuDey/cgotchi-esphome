@@ -9,6 +9,7 @@
 | Show a live image from a URL | [display-frame.md](display-frame.md) |
 | Show a web page or HA dashboard | [webview.md](webview.md) |
 | See what appears in Home Assistant | [ha-entities.md](ha-entities.md) |
+| Use it with no Home Assistant or network | [standalone.md](standalone.md) |
 | Add a control dashboard to Home Assistant | [dashboard.md](dashboard.md) |
 | Validate the config and check it works | [validate-and-verify.md](validate-and-verify.md) |
 | Fix a problem | [troubleshooting.md](troubleshooting.md) |

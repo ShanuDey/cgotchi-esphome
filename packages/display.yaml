@@ -1,6 +1,6 @@
 # The display and what it shows: panel, fonts, the display lambda (display_ui), pages, theme lights.
 # Uses: gotchi_player, mww, va_state (voice.yaml), rwv (webview.yaml), reaction_until and reaction_expr (reactions.yaml),
-# face_down and motion_reactions (motion.yaml), ota_state and ota_pct (ota: in cgotchi.yaml).
+# manual_epoch and manual_set_ms (standalone.yaml), face_down and motion_reactions (motion.yaml), ota_state and ota_pct (ota: in cgotchi.yaml).
 
 # 240x296 ST7789-class panel, no MISO. MADCTL 0x40 = mirror X, RGB order,
 # no inversion (reference/cheeko-gotchi/SKILL.md section 4). Portrait only; landscape needs offsets.
@@ -60,7 +60,11 @@ display:
       st.frame_state = id(frame_state);
       st.frame_image = id(frame_img);
       st.hour24 = id(clock_fmt_sel).active_index().value_or(0) == 1;
-      st.time = id(ha_time).now();
+      if (st.page == cgotchi::ui::CLOCK) {   // only the Clock page shows the time
+        st.time = id(ha_time).now();
+        if (!st.time.is_valid() && id(manual_epoch) != 0)
+          st.time = ESPTime::from_epoch_utc(id(manual_epoch) + (millis() - id(manual_set_ms)) / 1000);
+      }
       if (st.page == cgotchi::ui::MESSAGE) {   // the strings are copies: only when shown
         st.message_title = id(msg_title).state;
         st.message_body = id(msg_body).state;
