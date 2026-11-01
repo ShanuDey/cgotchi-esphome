@@ -1,0 +1,12 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Cgotchi",
+        "description": "Pick the ESPHome device that runs the cgotchi firmware.",
+        "data": { "device_id": "Device" }
+      }
+    },
+    "abort": { "single_instance_allowed": "Cgotchi is already set up." }
+  }
+}

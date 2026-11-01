@@ -29,6 +29,7 @@ You need Home Assistant with the **ESPHome Device Builder** add-on.
 - **Speaker and mic** as HA entities, volume buttons, dimmable backlight.
 - **Wireless, encrypted OTA** with an on-screen progress bar.
 - **Dashboard:** a ready-made Home Assistant control page, see [docs/dashboard.md](docs/dashboard.md).
+- **HTTP API:** drive the device from scripts or Postman through Home Assistant (`/api/cgotchi/...`, installable with HACS), see [docs/api.md](docs/api.md).
 
 ## Docs
 

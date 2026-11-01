@@ -23,13 +23,13 @@ external_components:
 
 This is what lets the config work standalone in the HA builder with no local
 files. The catch: edits to `components/` have no effect on a build until you push
-them. To iterate on a component locally, run ESPHome through `uv run cgotchi` from the repo root (code in
+them. To iterate on a component locally, run ESPHome through `uv run cgotchi dev` from the repo root (code in
 `scripts/dev.py`) instead of `uv run esphome`:
 
 ```bash
-uv run cgotchi compile
-uv run cgotchi run --device <ip|COMx> --no-logs
-uv run cgotchi logs --device <ip>
+uv run cgotchi dev compile
+uv run cgotchi dev run --device <ip|COMx> --no-logs
+uv run cgotchi dev logs --device <ip>
 ```
 
 It writes `cgotchi-dev.yaml` (git-ignored), a copy of `cgotchi.yaml` with only the

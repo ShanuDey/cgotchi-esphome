@@ -53,6 +53,9 @@ jobs:
       - name: Control server tests
         run: uv run pytest display-sim/tests -q
 
+      - name: API client and integration tests
+        run: uv run python -m unittest cgotchi_api.tests.test_api tests.test_integration tests.test_views
+
       - name: Text helper tests
         working-directory: components/display_ui/tests
         run: g++ -std=c++17 -Wall -Wextra -o test_text test_text.cpp && ./test_text
@@ -67,4 +70,4 @@ jobs:
         run: |
           grep -v '^api_key' secrets.example.yaml > secrets.yaml
           python3 -c "import base64,os;print('api_key: ' + base64.b64encode(os.urandom(32)).decode())" >> secrets.yaml
-          uv run cgotchi config > config.txt || { tail -n 40 config.txt; exit 1; }
+          uv run cgotchi dev config > config.txt || { tail -n 40 config.txt; exit 1; }

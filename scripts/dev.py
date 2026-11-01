@@ -1,10 +1,10 @@
 """Runs ESPHome on cgotchi.yaml with the custom components taken from this checkout (components/)
 instead of the GitHub branch, so edits there apply without pushing.
 
-    uv run cgotchi config
-    uv run cgotchi compile
-    uv run cgotchi run --device <ip|COMx> --no-logs
-    uv run cgotchi logs --device <ip>
+    uv run cgotchi dev config
+    uv run cgotchi dev compile
+    uv run cgotchi dev run --device <ip|COMx> --no-logs
+    uv run cgotchi dev logs --device <ip>
 
 Run it from the repo root. It writes cgotchi-dev.yaml (git-ignored): a copy of cgotchi.yaml with only
 the external_components source switched to local, then passes everything on to ESPHome. cgotchi.yaml
