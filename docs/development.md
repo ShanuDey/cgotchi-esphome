@@ -67,6 +67,20 @@ packages:
 
 `refresh` stops ESPHome reusing a cached clone for a day.
 
+## Editor completion for `custom_components/cgotchi`
+
+Home Assistant needs Python 3.14.2 or newer and pins its own library versions, so it cannot go in the project
+venv (Python 3.12, ESPHome). Install it into a separate, editor-only venv instead; `.vscode/settings.json`
+already points Pylance at it:
+
+```
+uv venv .venv-ha --python 3.14
+uv pip install --python .venv-ha homeassistant
+```
+
+Then reload the VS Code window. Nothing runs from that venv: the unit tests stub Home Assistant and use the
+project venv.
+
 ## Releasing
 
 1. Merge to `main` and tag a release (for example `v0.1.0`).

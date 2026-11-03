@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, cast
+from urllib.parse import urlsplit
 
 import voluptuous as vol
 import yaml
@@ -16,10 +17,12 @@ from homeassistant.exceptions import HomeAssistantError, ServiceNotFound, Servic
 
 from .const import DOMAIN
 from .device import CgotchiDevice, EntityNotFound
+from .mcp import PARSE_ERROR, McpServer
 from .schemas import DISPLAY_SCHEMA, SPEAKER_SCHEMA, VOICE_SCHEMA
 
 _DIR = Path(__file__).parent
 _SPEC = _DIR / "openapi.yaml"
+_MCP_KEY = f"{DOMAIN}_mcp"
 
 def _async(fn: Callable[[CgotchiDevice], Any]) -> Callable[[CgotchiDevice], Awaitable[Any]]:
     async def run(device: CgotchiDevice) -> Any:
@@ -30,13 +33,20 @@ def _async(fn: Callable[[CgotchiDevice], Any]) -> Callable[[CgotchiDevice], Awai
 class _CgotchiView(HomeAssistantView):
     """Shared plumbing: 403 for non-admins, 503 without a device, 400 on bad input, 404/502 from the device."""
 
-    async def _run(self, request: web.Request, action: Callable[[CgotchiDevice], Awaitable[Any]]) -> web.Response:
+    def _guard(self, request: web.Request) -> tuple[CgotchiDevice | None, web.Response | None]:
+        """The device, or the reply to send instead (403 for non-admins, 503 without a device)."""
         user = request.get("hass_user")
         if user is None or not user.is_admin:
-            return self.json_message("administrator token required", 403)
+            return None, self.json_message("administrator token required", 403)
         device: CgotchiDevice | None = request.app["hass"].data.get(DOMAIN)
         if device is None:
-            return self.json_message("cgotchi is not set up", 503)
+            return None, self.json_message("cgotchi is not set up", 503)
+        return device, None
+
+    async def _run(self, request: web.Request, action: Callable[[CgotchiDevice], Awaitable[Any]]) -> web.Response:
+        device, denied = self._guard(request)
+        if device is None:
+            return cast("web.Response", denied)
         try:
             return self.json(await action(device))
         except EntityNotFound as err:
@@ -108,17 +118,38 @@ class StateView(_CgotchiView):
     name = "api:cgotchi:state"
 
     async def get(self, request: web.Request) -> web.Response:
-        return await self._run(
-            request,
-            _async(
-                lambda d: {
-                    "display": d.display_state(),
-                    "speaker": d.speaker_state(),
-                    "voice": d.voice_state(),
-                    "touch": d.touch_state(),
-                }
-            ),
-        )
+        return await self._run(request, _async(lambda d: d.state()))
+
+async def _mcp_server(hass: HomeAssistant) -> McpServer:
+    """Built once, off the event loop (it parses the spec)."""
+    server: McpServer | None = hass.data.get(_MCP_KEY)
+    if server is None:
+        server = await hass.async_add_executor_job(lambda: McpServer(yaml.safe_load(_SPEC.read_text("utf-8"))))
+        hass.data[_MCP_KEY] = server
+    return server
+
+class McpView(_CgotchiView):
+    """MCP over streamable HTTP, stateless. GET and DELETE are not defined, so aiohttp answers 405."""
+
+    url = "/api/cgotchi/mcp"
+    name = "api:cgotchi:mcp"
+
+    async def post(self, request: web.Request) -> web.Response:
+        device, denied = self._guard(request)
+        if device is None:
+            return cast("web.Response", denied)
+        origin = request.headers.get("Origin")
+        if origin and urlsplit(origin).netloc != request.host:
+            return self.json_message("origin not allowed", 403)
+        try:
+            message = await request.json()
+        except ValueError:
+            return self.json(PARSE_ERROR)
+        server = await _mcp_server(request.app["hass"])
+        reply = await server.handle(device, message, (EntityNotFound, HomeAssistantError))
+        if reply is None:
+            return web.Response(status=202)
+        return self.json(reply)
 
 @lru_cache(maxsize=1)
 def _spec_json(modified: float) -> str:
@@ -137,4 +168,4 @@ class OpenApiView(HomeAssistantView):
         text = await hass.async_add_executor_job(lambda: _spec_json(_SPEC.stat().st_mtime))
         return web.Response(text=text, content_type="application/json")
 
-VIEWS = [DisplayView, SpeakerView, VoiceView, TouchView, StateView, OpenApiView]
+VIEWS = [DisplayView, SpeakerView, VoiceView, TouchView, StateView, McpView, OpenApiView]

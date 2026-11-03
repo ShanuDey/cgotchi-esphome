@@ -5,6 +5,7 @@
 /secrets.yaml
 /cgotchi-dev.yaml
 /.venv/
+/.venv-ha/
 .env
 __pycache__/
 *.pyc

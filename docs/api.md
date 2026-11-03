@@ -10,6 +10,7 @@ the device's entities (see [ha-entities.md](ha-entities.md)), so it needs no fir
 | `GET/POST /api/cgotchi/speaker` | Play a URL, speak text (needs a `tts.*` entity), volume, play/pause/stop. |
 | `GET/POST /api/cgotchi/voice` | On-device wake word on or off. |
 | `GET /api/cgotchi/touch` | Last touch gesture, buttons, shake and motion. |
+| `POST /api/cgotchi/mcp` | The same operations as MCP tools, for AI agents ([below](#mcp-server)). |
 
 The integration ships its own icon in `custom_components/cgotchi/brand/` (Home Assistant 2026.3 and later).
 
@@ -54,6 +55,39 @@ example a Samba share) and run `uv run cgotchi deploy api` (add `--restart` to r
 
 `CGOTCHI_HA_URL` is your Home Assistant address on the local network (`http://homeassistant.local:8123`, or the
 IP if mDNS fails). Keep any public address in your own `.env`, not in the repo.
+
+## MCP server
+
+`POST /api/cgotchi/mcp` speaks the Model Context Protocol (streamable HTTP, JSON replies, stateless) so an AI agent can
+use the device. It needs the same administrator token as the rest of the API and runs inside Home Assistant: nothing
+else to deploy. It has one tool per operation in `openapi.yaml`, named by its `operationId`, with the input schema
+taken from the spec:
+
+| Tool | Does |
+|---|---|
+| `get_state` | Display, speaker, voice and touch in one call |
+| `get_display`, `set_display` | Read or change page, theme, expression, message, colors, frame rate |
+| `get_speaker`, `set_speaker` | Read, or play a URL, speak text, set the volume |
+| `get_wake_word`, `set_wake_word` | Read or switch the on-device wake word |
+| `get_touch` | Last touch gesture, buttons, shake and motion |
+
+A bad argument or a missing entity comes back as a tool error with a message, not as an HTTP error. There is no
+server-to-client stream, so GET answers 405.
+
+Connect Claude Code (use your own Home Assistant address and token):
+
+```
+claude mcp add --transport http cgotchi <HA address>/api/cgotchi/mcp --header "Authorization: Bearer <token>"
+```
+
+To try the tools in a browser, run `uv run cgotchi mcp ui` (needs Node): it opens the MCP Inspector and prints the
+endpoint to enter; choose Streamable HTTP and add the `Authorization: Bearer <token>` header.
+
+Any client that can send a bearer header works the same way (MCP Inspector, any agent framework). A client that only supports
+OAuth sign-in may not connect, because Home Assistant's login is not the OAuth discovery MCP clients expect.
+
+To change a tool, edit the operation in `openapi.yaml`; a new operation also needs an entry in `HANDLERS` in
+`custom_components/cgotchi/mcp.py`. The tests fail if the two disagree.
 
 ## Postman
 

@@ -54,7 +54,7 @@ jobs:
         run: uv run pytest display-sim/tests -q
 
       - name: API client and integration tests
-        run: uv run python -m unittest cgotchi_api.tests.test_api tests.test_integration tests.test_views
+        run: uv run python -m unittest cgotchi_api.tests.test_api cgotchi_api.tests.test_mcp_ui tests.test_integration tests.test_views tests.test_mcp
 
       - name: Text helper tests
         working-directory: components/display_ui/tests

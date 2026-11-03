@@ -1,4 +1,8 @@
 {
+  "python.analysis.extraPaths": [
+    ".venv-ha/Lib/site-packages",
+    ".venv-ha/lib/python3.14/site-packages"
+  ],
   "yaml.customTags": [
     "!secret scalar",
     "!lambda scalar",

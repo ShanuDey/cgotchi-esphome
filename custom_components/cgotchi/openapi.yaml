@@ -1,11 +1,13 @@
 openapi: 3.0.3
 info:
   title: Cgotchi API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     Drive the cgotchi device through Home Assistant. Every endpoint needs the long-lived access
     token of an administrator (`Authorization: Bearer <token>`). Mic audio is not exposed: use
     the voice pipeline (`/voice`).
+
+    The same operations are served as an MCP server at `POST /api/cgotchi/mcp`, one tool per operationId.
 
     A POST returns the state read right after the change. The device reports its new value a
     moment later, so a field you just set can still show the old value; read it again to confirm.
@@ -17,6 +19,7 @@ security:
 paths:
   /api/cgotchi/state:
     get:
+      operationId: get_state
       summary: Snapshot of display, speaker, voice and touch
       responses:
         "200":
@@ -35,6 +38,7 @@ paths:
         "503": { $ref: "#/components/responses/NotSetUp" }
   /api/cgotchi/display:
     get:
+      operationId: get_display
       summary: Read the display settings
       responses:
         "200":
@@ -46,6 +50,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "503": { $ref: "#/components/responses/NotSetUp" }
     post:
+      operationId: set_display
       summary: Change the display
       description: Send only the fields to change. Returns the new state.
       requestBody:
@@ -74,6 +79,7 @@ paths:
         "503": { $ref: "#/components/responses/NotSetUp" }
   /api/cgotchi/speaker:
     get:
+      operationId: get_speaker
       summary: Read the speaker state and volume
       responses:
         "200":
@@ -85,6 +91,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "503": { $ref: "#/components/responses/NotSetUp" }
     post:
+      operationId: set_speaker
       summary: Play audio, speak text or set the volume
       description: |
         `message` needs `tts_entity` (a Home Assistant `tts.*` entity). Several fields can be
@@ -113,6 +120,7 @@ paths:
         "503": { $ref: "#/components/responses/NotSetUp" }
   /api/cgotchi/voice:
     get:
+      operationId: get_wake_word
       summary: Read the on-device wake word state
       responses:
         "200":
@@ -124,6 +132,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "503": { $ref: "#/components/responses/NotSetUp" }
     post:
+      operationId: set_wake_word
       summary: Turn the on-device wake word on or off
       requestBody:
         required: true
@@ -148,6 +157,7 @@ paths:
         "503": { $ref: "#/components/responses/NotSetUp" }
   /api/cgotchi/touch:
     get:
+      operationId: get_touch
       summary: Last touch gesture, buttons and motion
       responses:
         "200":

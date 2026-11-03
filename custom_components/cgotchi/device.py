@@ -79,6 +79,14 @@ class CgotchiDevice:
         service = "turn_on" if body["wake_word_mode"] else "turn_off"
         await self._run([("switch", service, {"entity_id": switch})])
 
+    def state(self) -> dict[str, Any]:
+        return {
+            "display": self.display_state(),
+            "speaker": self.speaker_state(),
+            "voice": self.voice_state(),
+            "touch": self.touch_state(),
+        }
+
     def display_state(self) -> dict[str, Any]:
         return {field: self._read(*target) for field, target in DISPLAY_FIELDS.items()}
 
